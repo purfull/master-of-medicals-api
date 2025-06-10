@@ -9,8 +9,6 @@ const db = require('./db');
 require('./relationship');
 const app = express();
 
-// npm install axios bcrypt cors dotenv express jsonwebtoken mysql2 nodemon pug redis sequelize sqlite3 path multer
-
 const path = require('path');
 
 

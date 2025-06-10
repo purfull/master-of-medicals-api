@@ -1,6 +1,6 @@
 const Vendors = require("./model");
 const bcrypt = require('bcryptjs');
-
+const { generateAccessToken, generateRefreshToken } = require('../utils/jwt');
 
 const getAllVendors = async (req, res) => {
   try {
@@ -72,8 +72,26 @@ const createVendors = async (req, res) => {
       name, email, phone, hashedPassword, address, city, state, country, postalCode
     });
 
+    const payload = {
+      id: newVendors.id,
+      name: newVendors.name,
+      email: newVendors.email,
+      phone: newVendors.phone,
+    }
+
+    const accessToken = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: false, 
+      sameSite: "Strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
     res.json({
       success: true,
+      accessToken,
       message: "Vendors created successfully",
       data: newVendors,
     });

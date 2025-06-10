@@ -1,17 +1,18 @@
 const customer = require("../customers/model");
 const vendor = require("../vendors/model");
 const bcrypt = require("bcryptjs");
-// const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
+const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
 
 const login = async (req, res) => {
   const { type } = req.params; 
-  const { email, password } = req.body;
+  const { email, password, token } = req.body;
 
   try {
     let model;
     if (type === "customer") model = customer;
     else if (type === "vendor") model = vendor;
     else return res.status(400).json({ message: "Invalid user type" });
+
 
     const existingUser = await model.findOne({ where: { email } });
 
@@ -24,20 +25,28 @@ const login = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // const accessToken = generateAccessToken(existingUser);
-    // const refreshToken = generateRefreshToken(existingUser);
+    
+    const payload = {
+      id: existingUser.id,
+      name: existingUser.name,
+      email: existingUser.email,
+      phone: existingUser.phone,
+    }
 
-    // res.cookie("refreshToken", refreshToken, {
-    //   httpOnly: true,
-    //   secure: false, 
-    //   sameSite: "Strict",
-    //   maxAge: 7 * 24 * 60 * 60 * 1000,
-    // });
+    const accessToken = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: false, 
+      sameSite: "Strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
 
     res.json({
       success: true,
       message: "Login successful",
-    //   accessToken,
+      accessToken,
       user: {
         id: existingUser.id,
         name: existingUser.name,

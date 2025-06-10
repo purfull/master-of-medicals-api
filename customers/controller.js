@@ -72,8 +72,25 @@ const createCustomer = async (req, res) => {
       name, email, phone, password: hashedPassword, address, city, state, country, postalCode
     });
 
+    const payload = {
+      id: newCustomer.id,
+      name: newCustomer.name,
+      email: newCustomer.email,
+      phone: newCustomer.phone,
+    }
+
+    const accessToken = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: false, 
+      sameSite: "Strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
     res.json({
       success: true,
+      accessToken,
       message: "Customer created successfully",
       data: newCustomer,
     });
