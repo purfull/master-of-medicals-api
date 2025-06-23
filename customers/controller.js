@@ -1,4 +1,6 @@
 const bcrypt = require('bcryptjs');
+const path = require("path");
+const fs = require("fs");
 const Customer = require("./model");
 
 
@@ -8,13 +10,15 @@ const getAllCustomer = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
 
+    const baseUrl = `${req.protocol}://${req.get("host")}/`;
     const { count, rows: Customers } = await Customer.findAndCountAll({
       limit,
       offset,
     });
 
     const updatedCustomers = Customers.map((t) => {
-      return { ...t.toJSON() };
+      const updatedImage = t.image?.map((imgPath) => `${baseUrl}${imgPath}`);
+      return { ...t.toJSON(), image: updatedImage };
     });
 
     res.json({
@@ -43,14 +47,16 @@ const getAllCustomer = async (req, res) => {
   
     try {
   
+      const baseUrl = `${req.protocol}://${req.get("host")}/`;
       const t = await Customer.findOne({ where: { id } });
   
       if (!t) {
         return res.status(404).json({ success: false, message: "Customer not found" });
       }
   
+      const updatedImage = t.image?.map((imgPath) => `${baseUrl}${imgPath}`);
   
-      res.json({ success: true, data: t });
+      res.json({ success: true, data: { ...t.toJSON(), image: updatedImage } });
   
     } catch (error) {
       console.log("error", error);
@@ -63,13 +69,14 @@ const getAllCustomer = async (req, res) => {
   
 
 const createCustomer = async (req, res) => {
-  const { name, email, phone, password, address, city, state, country, postalCode } = req.body;
+  const { name, email, phone, password, address, city, state, country, postalCode, type } = req.body;
 
   try {
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const filePaths = req.files.map(file => path.relative("uploads", file.path).replace(/\\/g, "/"));
     const newCustomer = await Customer.create({
-      name, email, phone, password: hashedPassword, address, city, state, country, postalCode
+      name, email, phone, password: hashedPassword, address, city, state, country, postalCode, files: filePaths, type
     });
 
     const payload = {

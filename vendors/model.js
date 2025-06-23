@@ -38,6 +38,12 @@ module.exports = sequelize.define('Vendors', {
   postalCode: {
     type: DataTypes.STRING,
   },
+  files: {
+    type: DataTypes.JSON,
+  },
+  type: {
+    type: DataTypes.ENUM('manufacturing', 'oem', 'dealer'),
+  },
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,

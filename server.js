@@ -30,6 +30,7 @@ const corsOptions = {
   const customerRoutes = require('./customers/routes')
   const vendorRoutes = require('./vendors/routes')
   const loginRoutes = require('./login/routes')
+  const productRoutes = require('./product/routes')
   
   app.use(express.urlencoded({extended: false}));
   app.use(express.json());
@@ -42,6 +43,7 @@ app.get('/check',(req, res) => {
 
 app.use('/customer', customerRoutes);
 app.use('/vendor', vendorRoutes);
+app.use('/product', productRoutes);
 app.use('/testimonial', testiomonialRoutes);
 app.use('/blog', blogRoutes);
 app.use('/user', loginRoutes);

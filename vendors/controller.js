@@ -1,5 +1,7 @@
 const Vendors = require("./model");
 const bcrypt = require('bcryptjs');
+const path = require("path");
+const fs = require("fs");
 const { generateAccessToken, generateRefreshToken } = require('../utils/jwt');
 
 const getAllVendors = async (req, res) => {
@@ -7,14 +9,18 @@ const getAllVendors = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
+  
+    const baseUrl = `${req.protocol}://${req.get("host")}/`;
 
     const { count, rows: Vendorss } = await Vendors.findAndCountAll({
       limit,
       offset,
     });
 
+    const updatedImage = t.image?.map((imgPath) => `${baseUrl}${imgPath}`);
+
     const updatedVendorss = Vendorss.map((t) => {
-      return { ...t.toJSON() };
+      return { ...t.toJSON(), image: updatedImage };
     });
 
     res.json({
@@ -43,14 +49,16 @@ const getAllVendors = async (req, res) => {
   
     try {
   
+      const baseUrl = `${req.protocol}://${req.get("host")}/`;
       const t = await Vendors.findOne({ where: { id } });
   
       if (!t) {
         return res.status(404).json({ success: false, message: "Vendors not found" });
       }
   
+      const updatedImage = t.image?.map((imgPath) => `${baseUrl}${imgPath}`);
   
-      res.json({ success: true, data: t });
+      res.json({ success: true, data: { ...t.toJSON(), image: updatedImage } });
   
     } catch (error) {
       console.log("error", error);
@@ -63,14 +71,14 @@ const getAllVendors = async (req, res) => {
   
 
 const createVendors = async (req, res) => {
-  const { name, email, phone, password, address, city, state, country, postalCode } = req.body;
+  const { name, email, phone, password, address, city, state, country, postalCode , type} = req.body;
 
   try {
     
     const hashedPassword = await bcrypt.hash(password, 10);
+    const filePaths = req.files.map(file => path.relative("uploads", file.path).replace(/\\/g, "/"));
     const newVendors = await Vendors.create({
-      name, email, phone, hashedPassword, address, city, state, country, postalCode
-    });
+      name, email, phone, hashedPassword, address, city, state, country, files: filePaths, postalCode, type    });
 
     const payload = {
       id: newVendors.id,

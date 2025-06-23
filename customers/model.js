@@ -38,6 +38,12 @@ module.exports = sequelize.define('Customers', {
   postalCode: {
     type: DataTypes.STRING,
   },
+  files: {
+    type: DataTypes.JSON,
+  },
+  type: {
+    type: DataTypes.ENUM('hospital', 'pathology-lab', 'diagnostic-center', 'physiotherapist', 'rehabilitation', 'poly-clinic'),
+  },
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,
