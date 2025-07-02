@@ -13,6 +13,12 @@ module.exports = sequelize.define('Product', {
   description: {
     type: DataTypes.TEXT,
   },
+  category: {
+    type: DataTypes.TEXT,
+  },
+  subCategory: {
+    type: DataTypes.TEXT,
+  },
   postedBy: {
     type: DataTypes.INTEGER,
   },

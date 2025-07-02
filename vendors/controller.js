@@ -56,9 +56,9 @@ const getAllVendors = async (req, res) => {
         return res.status(404).json({ success: false, message: "Vendors not found" });
       }
   
-      const updatedImage = t.image?.map((imgPath) => `${baseUrl}${imgPath}`);
+      const updatedFile = t.files?.map((imgPath) => `${baseUrl}${imgPath}`);
   
-      res.json({ success: true, data: { ...t.toJSON(), image: updatedImage } });
+      res.json({ success: true, data: { ...t.toJSON(), files: updatedFile } });
   
     } catch (error) {
       console.log("error", error);
@@ -71,47 +71,65 @@ const getAllVendors = async (req, res) => {
   
 
 const createVendors = async (req, res) => {
-  const { name, email, phone, password, address, city, state, country, postalCode , type} = req.body;
+  const { name, email, phone, password, address, city, state, country, postalCode, type } = req.body;
 
   try {
-    
     const hashedPassword = await bcrypt.hash(password, 10);
-    const filePaths = req.files.map(file => path.relative("uploads", file.path).replace(/\\/g, "/"));
+    const filePaths = req.files?.map((file) => `${process.env.FILE_PATH}${file.filename}`) || [];
+
     const newVendors = await Vendors.create({
-      name, email, phone, hashedPassword, address, city, state, country, files: filePaths, postalCode, type    });
+      name,
+      email,
+      phone,
+      password: hashedPassword,
+      address,
+      city,
+      state,
+      country,
+      files: filePaths,
+      postalCode,
+      type,
+    });
+
+    const baseUrl = `${req.protocol}://${req.get("host")}/`;
+    const updatedImage = newVendors.files?.map((imgPath) => `${baseUrl}${imgPath}`);
+
+    const updatedVendors = { ...newVendors.toJSON(), files: updatedImage };
 
     const payload = {
       id: newVendors.id,
       name: newVendors.name,
       email: newVendors.email,
       phone: newVendors.phone,
-    }
+    };
 
     const accessToken = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: false, 
-      sameSite: "Strict",
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
+    const isMobile = req.headers["platform"] === "mobile";
+    if (!isMobile) {
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "Strict",
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+      });
+    }
 
     res.json({
       success: true,
       accessToken,
-      message: "Vendors created successfully",
-      data: newVendors,
+      refreshToken: isMobile ? refreshToken : undefined,
+      message: "Vendor created successfully",
+      data: updatedVendors,
     });
 
   } catch (error) {
-    console.error("Error creating Vendors:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to create Vendors",
-    });
+    console.error("Error creating Vendor:", error);
+    res.status(500).json({ success: false, message: "Failed to create Vendor" });
   }
 };
+
 
 const updateVendors = async (req, res) => {
     const { id, name, email, phone, password, address, city, state, country, postalCode } = req.body;

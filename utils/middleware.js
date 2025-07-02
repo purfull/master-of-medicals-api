@@ -22,7 +22,9 @@ const authenticateToken = (req, res, next) => {
       req.user = user;
       return next();
     }
-    if (err.name === 'TokenExpiredError' && refreshToken) {
+    console.log("err.name",err.name);
+    
+    if (err.name == 'TokenExpiredError' && refreshToken) {
       try {
         const newAccessToken = refreshAccessToken(refreshToken);
         if (!newAccessToken) throw new Error();

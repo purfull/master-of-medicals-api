@@ -6,7 +6,7 @@ const { Op, fn, col, where, literal} = require('sequelize');
 
 const getAllProduct = async (req, res) => {
   try {
-     const { name, category, status, userId } = req.query;
+     const { name, category, subCategory, status, userId } = req.query;
 
       const whereClause = {};
 
@@ -20,6 +20,9 @@ const getAllProduct = async (req, res) => {
 
       if (status) {
           whereClause.status = status;
+      }
+      if (subCategory) {
+          whereClause.subCategory = subCategory;
       }
       if (userId) {
         whereClause.postedBy = userId;
@@ -41,9 +44,9 @@ const getAllProduct = async (req, res) => {
     });
 
     const updatedProducts = products.map((t) => {
-      const updatedThumbImage = t.thumbnailImage?.map((imgPath) => `${baseUrl}${imgPath}`);
+      const updatedThumbImage = t.thumbnailImage ? `${baseUrl}${t.thumbnailImage}` : null;
       // const updatedGalleryImage = t.image?.map((imgPath) => `${baseUrl}${imgPath}`);
-      return { ...t.toJSON(), image: updatedThumbImage };
+      return { ...t.toJSON(), thumbnailImage: updatedThumbImage };
     });
 
     res.json({
@@ -68,36 +71,42 @@ const getAllProduct = async (req, res) => {
 
 
   const getProductById = async (req, res) => {
-    const { id } = req.params;
-  
-    try {
-      const baseUrl = `${req.protocol}://${req.get("host")}/`;
-  
-      const t = await Product.findOne({ where: { id },
+  const { id } = req.params;
+
+  try {
+    const baseUrl = `${req.protocol}://${req.get("host")}/`;
+
+    const t = await Product.findOne({
+      where: { id },
       attributes: {
-        exclude: ['createdAt', 'updatedAt', 'thumbnailImage', 'additionalInformation'], 
-      } });
-  
-      if (!t) {
-        return res.status(404).json({ success: false, message: "Product not found" });
+        exclude: ['createdAt', 'updatedAt', 'thumbnailImage', 'additionalInformation'],
       }
-  
-    const updatedProducts = t.map((t) => {
-      // const updatedThumbImage = t.thumbnailImage?.map((imgPath) => `${baseUrl}${imgPath}`);
-      const updatedGalleryImage = t.galleryImage?.map((imgPath) => `${baseUrl}${imgPath}`);
-      return { ...t.toJSON(), images: updatedGalleryImage };
     });
-  
-      res.json({ success: true, data: updatedProducts });
-  
-    } catch (error) {
-      console.log("error", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to retrieve Product by id",
-      });
+
+    if (!t) {
+      return res.status(404).json({ success: false, message: "Product not found" });
     }
-  };
+
+    const updatedGalleryImage = Array.isArray(t.galleryImage)
+      ? t.galleryImage.map((imgPath) => `${baseUrl}${imgPath}`)
+      : [];
+
+    const updatedProduct = {
+      ...t.toJSON(),
+      galleryImage: updatedGalleryImage,
+    };
+
+    res.json({ success: true, data: updatedProduct });
+
+  } catch (error) {
+    console.log("error", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve Product by id",
+    });
+  }
+};
+
   
 
 const createProduct = async (req, res) => {
@@ -105,6 +114,8 @@ const createProduct = async (req, res) => {
     name,
     description,
     price,
+    category,
+    subCategory,
     postedBy,
     priceLable,
     brandName,
@@ -125,6 +136,8 @@ const createProduct = async (req, res) => {
     const newProduct = await Product.create({
       name,
       description,
+      category,
+      subCategory,
       thumbnailImage,
       galleryImage,
       price,

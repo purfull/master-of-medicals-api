@@ -6,7 +6,7 @@ const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
 const login = async (req, res) => {
   const { type } = req.params; 
   const { email, password, token } = req.body;
-
+  const isMobile = req.headers['platform'] === 'mobile';
   try {
     let model;
     if (type === "customer") model = customer;
@@ -36,17 +36,20 @@ const login = async (req, res) => {
     const accessToken = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: false, 
-      sameSite: "Strict",
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
+    if (!isMobile) {
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: false, 
+        sameSite: "Strict",
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+      });
+    }
 
     res.json({
       success: true,
       message: "Login successful",
       accessToken,
+      refreshToken: isMobile ? refreshToken : null,
       user: {
         id: existingUser.id,
         name: existingUser.name,

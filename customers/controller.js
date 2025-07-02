@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const path = require("path");
 const fs = require("fs");
 const Customer = require("./model");
+const { generateAccessToken, generateRefreshToken } = require('../utils/jwt');
 
 
 const getAllCustomer = async (req, res) => {
@@ -17,8 +18,8 @@ const getAllCustomer = async (req, res) => {
     });
 
     const updatedCustomers = Customers.map((t) => {
-      const updatedImage = t.image?.map((imgPath) => `${baseUrl}${imgPath}`);
-      return { ...t.toJSON(), image: updatedImage };
+      const updatedImage = t.files?.map((imgPath) => `${baseUrl}${imgPath}`);
+      return { ...t.toJSON(), files: updatedImage };
     });
 
     res.json({
@@ -54,9 +55,9 @@ const getAllCustomer = async (req, res) => {
         return res.status(404).json({ success: false, message: "Customer not found" });
       }
   
-      const updatedImage = t.image?.map((imgPath) => `${baseUrl}${imgPath}`);
+      const updatedImage = t.files?.map((imgPath) => `${baseUrl}${imgPath}`);
   
-      res.json({ success: true, data: { ...t.toJSON(), image: updatedImage } });
+      res.json({ success: true, data: { ...t.toJSON(), files: updatedImage } });
   
     } catch (error) {
       console.log("error", error);
@@ -74,7 +75,8 @@ const createCustomer = async (req, res) => {
   try {
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const filePaths = req.files.map(file => path.relative("uploads", file.path).replace(/\\/g, "/"));
+    const filePaths = req.files?.map((file) => `${process.env.FILE_PATH}${file.filename}`) || [];
+    // req.files?.map(file => path.relative("uploads", file.path).replace(/\\/g, "/")) 
     const newCustomer = await Customer.create({
       name, email, phone, password: hashedPassword, address, city, state, country, postalCode, files: filePaths, type
     });
