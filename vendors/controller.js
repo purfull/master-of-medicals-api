@@ -2,30 +2,60 @@ const Vendors = require("./model");
 const bcrypt = require('bcryptjs');
 const path = require("path");
 const fs = require("fs");
+const { Op, literal } = require("sequelize");
 const { generateAccessToken, generateRefreshToken } = require('../utils/jwt');
 
 const getAllVendors = async (req, res) => {
   try {
+    const { name, state, type, status, email } = req.query;
+
+    const whereClause = {};
+    const andConditions = [];
+
+    
+      if (name) {
+        whereClause.name = {
+  [Op.like]: `%${name}%`
+};
+      }
+  
+      if (email) {
+  whereClause.email = {
+    [Op.like]: `%${email}%`
+  };
+}
+
+    if (status) whereClause.status = status;
+    if (type) whereClause.type = type;
+    if (state) whereClause.state = state;
+
+    if (andConditions.length > 0) {
+      whereClause[Op.and] = andConditions;
+    }
+
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
-  
+
     const baseUrl = `${req.protocol}://${req.get("host")}/`;
 
-    const { count, rows: Vendorss } = await Vendors.findAndCountAll({
+    const { count, rows } = await Vendors.findAndCountAll({
+      where: whereClause,
       limit,
       offset,
     });
 
-    const updatedImage = t.image?.map((imgPath) => `${baseUrl}${imgPath}`);
-
-    const updatedVendorss = Vendorss.map((t) => {
-      return { ...t.toJSON(), image: updatedImage };
+    const updatedVendors = rows.map((vendor) => {
+      const v = vendor.toJSON();
+      if (v.files && Array.isArray(v.files)) {
+        v.files = v.files.map((imgPath) => `${baseUrl}${imgPath}`);
+      }
+      return v;
     });
 
     res.json({
       success: true,
-      data: updatedVendorss,
+      data: updatedVendors,
       pagination: {
         total: count,
         page,
@@ -35,10 +65,10 @@ const getAllVendors = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("error", error);
+    console.error("Error fetching vendors:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to retrieve Vendorss",
+      message: "Failed to retrieve vendors",
     });
   }
 };
@@ -165,7 +195,7 @@ const deleteVendors = async (req, res) => {
         return res.status(404).json({ success: false, message: "Vendors not found" });
       }
   
-      await Vendors.update({isActive: false},{ where: { id } });
+      await Vendors.update({status: "in-active"},{ where: { id } });
   
       res.json({
         success: true,

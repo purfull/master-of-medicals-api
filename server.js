@@ -21,6 +21,8 @@ const corsOptions = {
     origin: [
   'http://localhost:5173',
   'http://luxcycs.com',
+  'https://master-of-medical.pages.dev',
+  'http://laidarchitecture.com',
   'https://luxcycs.com'
 ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], 
@@ -38,7 +40,8 @@ const corsOptions = {
   const productRoutes = require('./product/routes')
   const loginRoutes = require('./login/routes')
   const adminUserRoutes = require('./adminUser/routes')
-  
+  const cartRoutes = require('./cartItems/routes')
+
   app.use(express.urlencoded({extended: true}));
   app.use(express.json());
   app.set('view engine', 'pug');
@@ -55,6 +58,7 @@ app.use('/testimonial', testiomonialRoutes);
 app.use('/blog', blogRoutes);
 app.use('/user', loginRoutes);
 app.use('/admin-user', adminUserRoutes);
+app.use('/cart', cartRoutes);
 
 
 db.sync({ force: false })

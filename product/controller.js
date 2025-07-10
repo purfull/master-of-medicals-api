@@ -6,18 +6,22 @@ const { Op, fn, col, where, literal} = require('sequelize');
 
 const getAllProduct = async (req, res) => {
   try {
-     const { name, category, subCategory, status, userId } = req.query;
+     const { name, category, subCategory, status, userId, brandName } = req.query;
 
       const whereClause = {};
 
       if (name) {
-        whereClause[Op.and] = literal(`LOWER(JSON_UNQUOTE(name->'$.en')) LIKE '%${name.toLowerCase()}%'`);
+        whereClause.name = {
+  [Op.like]: `%${name}%`
+};
       }
+  
 
       if (category) {
           whereClause.category = category;
       }
 
+    if (brandName) whereClause.brandName = brandName;
       if (status) {
           whereClause.status = status;
       }
@@ -78,9 +82,9 @@ const getAllProduct = async (req, res) => {
 
     const t = await Product.findOne({
       where: { id },
-      attributes: {
-        exclude: ['createdAt', 'updatedAt', 'thumbnailImage', 'additionalInformation'],
-      }
+      // attributes: {
+      //  exclude: ['createdAt', 'updatedAt', 'thumbnailImage', 'additionalInformation'],
+      // }
     });
 
     if (!t) {

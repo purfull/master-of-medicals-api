@@ -1,25 +1,56 @@
 const bcrypt = require('bcryptjs');
 const path = require("path");
 const fs = require("fs");
+const { Op, literal } = require("sequelize");
 const Customer = require("./model");
 const { generateAccessToken, generateRefreshToken } = require('../utils/jwt');
 
 
 const getAllCustomer = async (req, res) => {
   try {
+    const { name, email, status, state, type } = req.query;
+
+    const whereClause = {};
+    const andConditions = [];
+
+      if (name) {
+        whereClause.name = {
+  [Op.like]: `%${name}%`
+};
+      }
+  
+      if (email) {
+  whereClause.email = {
+    [Op.like]: `%${email}%`
+  };
+}
+
+    if (status) whereClause.status = status;
+    if (type) whereClause.type = type;
+    if (state) whereClause.state = state;
+
+    if (andConditions.length > 0) {
+      whereClause[Op.and] = andConditions;
+    }
+
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
 
     const baseUrl = `${req.protocol}://${req.get("host")}/`;
-    const { count, rows: Customers } = await Customer.findAndCountAll({
+
+    const { count, rows } = await Customer.findAndCountAll({
+      where: whereClause,
       limit,
       offset,
     });
 
-    const updatedCustomers = Customers.map((t) => {
-      const updatedImage = t.files?.map((imgPath) => `${baseUrl}${imgPath}`);
-      return { ...t.toJSON(), files: updatedImage };
+    const updatedCustomers = rows.map((customer) => {
+      const c = customer.toJSON();
+      if (c.files && Array.isArray(c.files)) {
+        c.files = c.files.map((imgPath) => `${baseUrl}${imgPath}`);
+      }
+      return c;
     });
 
     res.json({
@@ -34,10 +65,10 @@ const getAllCustomer = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("error", error);
+    console.error("Error retrieving customers:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to retrieve Customers",
+      message: "Failed to retrieve customers",
     });
   }
 };
@@ -147,7 +178,7 @@ const deleteCustomer = async (req, res) => {
         return res.status(404).json({ success: false, message: "Customer not found" });
       }
   
-      await Customer.update({isActive: false},{ where: { id } });
+      await Customer.update({status: "in-active"},{ where: { id } });
   
       res.json({
         success: true,

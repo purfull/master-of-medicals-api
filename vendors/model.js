@@ -44,9 +44,9 @@ module.exports = sequelize.define('Vendors', {
   type: {
     type: DataTypes.ENUM('manufacturing', 'oem', 'dealer'),
   },
-  isActive: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true,
+  status: {
+    type: DataTypes.ENUM('active', 'in-active'),
+    defaultValue: "active",
   },
 
 }, {

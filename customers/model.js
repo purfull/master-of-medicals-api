@@ -44,9 +44,9 @@ module.exports = sequelize.define('Customers', {
   type: {
     type: DataTypes.ENUM('hospital', 'pathology-lab', 'diagnostic-center', 'physiotherapist', 'rehabilitation', 'poly-clinic'),
   },
-  isActive: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true,
+  status: {
+    type: DataTypes.ENUM("active", "in-active"),
+    defaultValue: "active",
   },
 
 }, {

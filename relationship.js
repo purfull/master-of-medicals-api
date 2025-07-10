@@ -1,5 +1,4 @@
-// Setup relationships
-const Customer = require('./Customers');
+const Customer = require('./customers/model');
 const Cart = require('./cart/model');
 const CartItem = require('./cartItems/model');
 const Product = require('./product/model');

@@ -45,8 +45,8 @@ module.exports = sequelize.define('AdminUser', {
     type: DataTypes.ENUM('super-admin', 'admin'),
   },
   status: {
-    type: DataTypes.STRING,
-    defaultValue: true,
+    type: DataTypes.ENUM('active', 'in-active'),
+    defaultValue: 'active',
   },
 
 }, {
