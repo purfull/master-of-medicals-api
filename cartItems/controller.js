@@ -1,5 +1,6 @@
-const CartItems = require("./model");
+const CartItems = require("../cartItems/model");
 const Cart = require("../cart/model")
+const Product = require('../product/model');
 
 const getAllCartItems = async (req, res) => {
     
@@ -37,14 +38,23 @@ const getCartItemByCartId = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const cart = Cart.findOne({where: {customerId: id}})
-    const cartItem = await CartItems.findAll({where : { cartId: cart.id }});
+    const cart = await Cart.findOne({where: {customerId: id}})
+    const cartItems = await CartItems.findAll({
+      where: { cartId: cart.id },
+      include: [
+        {
+          model: Product,
+          as: 'Product',
+          attributes: ['id', 'name', 'price', 'description']
+        }
+      ]
+    });
 
-    if (!cartItem) {
+    if (!cartItems) {
       return res.status(404).json({ success: false, message: "Cart item not found" });
     }
 
-    res.json({ success: true, data: cartItem });
+    res.json({ success: true, data: cartItems });
 
   } catch (error) {
     console.error("Error getting cart item by ID:", error);

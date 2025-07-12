@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../db'); 
+const Cart = require('../cart/model');
 
 module.exports = sequelize.define('Customers', {
   id: {
@@ -49,9 +50,17 @@ module.exports = sequelize.define('Customers', {
     defaultValue: "active",
   },
 
-}, {
+},  
+{
   tableName: 'Customers',
   timestamps: true,
+  hooks: {
+    afterCreate: async (customer, options) => {
+      await Cart.create({
+        customerId: customer.id
+      });
+    }
+  }
 });
 
 

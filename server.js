@@ -7,7 +7,6 @@ const cookieParser = require('cookie-parser');
 
 
 const db = require('./db');
-require('./relationship');
 const app = express();
 
 const path = require('path');
@@ -41,6 +40,9 @@ const corsOptions = {
   const loginRoutes = require('./login/routes')
   const adminUserRoutes = require('./adminUser/routes')
   const cartRoutes = require('./cartItems/routes')
+  const orderRoutes = require('./orders/routes')
+
+require('./relationship');
 
   app.use(express.urlencoded({extended: true}));
   app.use(express.json());
@@ -59,6 +61,7 @@ app.use('/blog', blogRoutes);
 app.use('/user', loginRoutes);
 app.use('/admin-user', adminUserRoutes);
 app.use('/cart', cartRoutes);
+app.use('/order', orderRoutes);
 
 
 db.sync({ force: false })

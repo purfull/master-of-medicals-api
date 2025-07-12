@@ -41,12 +41,16 @@ module.exports = sequelize.define('Vendors', {
   files: {
     type: DataTypes.JSON,
   },
+  remarks: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
   type: {
     type: DataTypes.ENUM('manufacturing', 'oem', 'dealer'),
   },
   status: {
-    type: DataTypes.ENUM('active', 'in-active'),
-    defaultValue: "active",
+    type: DataTypes.ENUM('pending', 'approved','rejected'),
+    defaultValue: "pending",
   },
 
 }, {

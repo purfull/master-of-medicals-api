@@ -21,7 +21,7 @@ const CartItem = sequelize.define(
       },
       onDelete: "CASCADE",
     },
-    productRefId: {
+    productId: {
       type: DataTypes.INTEGER,
       references: {
         model: Product,
