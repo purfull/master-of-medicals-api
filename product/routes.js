@@ -13,7 +13,10 @@ router.post('/create-product', authenticateToken.authenticateToken, upload.field
     { name: "thumbnailImage", maxCount: 1 },
     { name: "galleryImage", maxCount: 10 }, 
   ]), productController.createProduct);
-router.put('/update-product', authenticateToken.authenticateToken, upload.single("image"),  productController.updateProduct);
+router.put('/update-product', authenticateToken.authenticateToken, upload.fields([
+    { name: "thumbnailImage", maxCount: 1 },
+    { name: "galleryImage", maxCount: 10 }, 
+  ]),  productController.updateProduct);
 router.delete('/delete-product/:id', authenticateToken.authenticateToken, productController.deleteProduct);
 
 

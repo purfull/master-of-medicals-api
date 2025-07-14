@@ -41,6 +41,7 @@ const corsOptions = {
   const adminUserRoutes = require('./adminUser/routes')
   const cartRoutes = require('./cartItems/routes')
   const orderRoutes = require('./orders/routes')
+  const queryRoutes = require('./supportQuery/routes')
 
 require('./relationship');
 
@@ -62,6 +63,7 @@ app.use('/user', loginRoutes);
 app.use('/admin-user', adminUserRoutes);
 app.use('/cart', cartRoutes);
 app.use('/order', orderRoutes);
+app.use('/support-query', queryRoutes);
 
 
 db.sync({ force: false })

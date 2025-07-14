@@ -145,27 +145,50 @@ const createCustomer = async (req, res) => {
 };
 
 const updateCustomer = async (req, res) => {
-    const { id, name, email, phone, address, city, state, country, postalCode } = req.body;
-  
-    try {
-      const existing = await Customer.findByPk(id);
-  
-      if (!existing) {
-        return res.status(404).json({ message: "Customer not found" });
-      }
-  
-  
-      await Customer.update(
-        { name, email, phone, address, city, state, country, postalCode },
-        { where: { id } }
-      );
-  
-      res.json({ success: true, message: "Customer updated successfully" });
-    } catch (error) {
-      console.error("Error updating Customer:", error);
-      res.status(500).json({ success: false, message: "Failed to update Customer" });
+  const { id, name, email, phone, address, city, state, country, postalCode } = req.body;
+
+  try {
+    const existing = await Customer.findByPk(id);
+
+    if (!existing) {
+      return res.status(404).json({ message: "Customer not found" });
     }
+
+    let filePaths = existing.files || [];
+
+    if (req.files && req.files.length > 0) {
+      for (const filePath of filePaths) {
+        const oldFilePath = path.join(__dirname, "..", filePath);
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
+        }
+      }
+
+      filePaths = req.files.map(file => `${process.env.FILE_PATH}${file.filename}`);
+    }
+
+    await Customer.update(
+      {
+        name,
+        email,
+        phone,
+        address,
+        city,
+        state,
+        country,
+        postalCode,
+        files: filePaths
+      },
+      { where: { id } }
+    );
+
+    res.json({ success: true, message: "Customer updated successfully" });
+  } catch (error) {
+    console.error("Error updating Customer:", error);
+    res.status(500).json({ success: false, message: "Failed to update Customer" });
+  }
 };
+
   
 
 const deleteCustomer = async (req, res) => {

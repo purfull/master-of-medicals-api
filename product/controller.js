@@ -1,36 +1,35 @@
 const Product = require("./model");
 const path = require("path");
 const fs = require("fs");
-const { Op, fn, col, where, literal} = require('sequelize');
-
+const { Op, fn, col, where, literal } = require("sequelize");
 
 const getAllProduct = async (req, res) => {
   try {
-     const { name, category, subCategory, status, userId, brandName } = req.query;
+    const { name, category, subCategory, status, userId, brandName } =
+      req.query;
 
-      const whereClause = {};
+    const whereClause = {};
 
-      if (name) {
-        whereClause.name = {
-  [Op.like]: `%${name}%`
-};
-      }
-  
+    if (name) {
+      whereClause.name = {
+        [Op.like]: `%${name}%`,
+      };
+    }
 
-      if (category) {
-          whereClause.category = category;
-      }
+    if (category) {
+      whereClause.category = category;
+    }
 
     if (brandName) whereClause.brandName = brandName;
-      if (status) {
-          whereClause.status = status;
-      }
-      if (subCategory) {
-          whereClause.subCategory = subCategory;
-      }
-      if (userId) {
-        whereClause.postedBy = userId;
-      }
+    if (status) {
+      whereClause.status = status;
+    }
+    if (subCategory) {
+      whereClause.subCategory = subCategory;
+    }
+    if (userId) {
+      whereClause.postedBy = userId;
+    }
 
     const baseUrl = `${req.protocol}://${req.get("host")}/`;
 
@@ -42,13 +41,20 @@ const getAllProduct = async (req, res) => {
       limit,
       offset,
       attributes: {
-        exclude: ['createdAt', 'updatedAt', 'galleryImage', 'additionalInformation'], 
+        exclude: [
+          "createdAt",
+          "updatedAt",
+          "galleryImage",
+          "additionalInformation",
+        ],
       },
       where: whereClause,
     });
 
     const updatedProducts = products.map((t) => {
-      const updatedThumbImage = t.thumbnailImage ? `${baseUrl}${t.thumbnailImage}` : null;
+      const updatedThumbImage = t.thumbnailImage
+        ? `${baseUrl}${t.thumbnailImage}`
+        : null;
       // const updatedGalleryImage = t.image?.map((imgPath) => `${baseUrl}${imgPath}`);
       return { ...t.toJSON(), thumbnailImage: updatedThumbImage };
     });
@@ -63,7 +69,6 @@ const getAllProduct = async (req, res) => {
         totalPages: Math.ceil(count / limit),
       },
     });
-
   } catch (error) {
     console.error("error", error);
     res.status(500).json({
@@ -73,8 +78,7 @@ const getAllProduct = async (req, res) => {
   }
 };
 
-
-  const getProductById = async (req, res) => {
+const getProductById = async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -88,9 +92,12 @@ const getAllProduct = async (req, res) => {
     });
 
     if (!t) {
-      return res.status(404).json({ success: false, message: "Product not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
     }
 
+    const updatedThumbnailImage = `${baseUrl}${t.thumbnailImage}`;
     const updatedGalleryImage = Array.isArray(t.galleryImage)
       ? t.galleryImage.map((imgPath) => `${baseUrl}${imgPath}`)
       : [];
@@ -98,10 +105,10 @@ const getAllProduct = async (req, res) => {
     const updatedProduct = {
       ...t.toJSON(),
       galleryImage: updatedGalleryImage,
+      thumbnailImage: updatedThumbnailImage,
     };
 
     res.json({ success: true, data: updatedProduct });
-
   } catch (error) {
     console.log("error", error);
     res.status(500).json({
@@ -110,8 +117,6 @@ const getAllProduct = async (req, res) => {
     });
   }
 };
-
-  
 
 const createProduct = async (req, res) => {
   const {
@@ -134,7 +139,9 @@ const createProduct = async (req, res) => {
       : null;
 
     const galleryImage = req.files?.galleryImage
-      ? req.files.galleryImage.map((file) => `${process.env.FILE_PATH}${file.filename}`)
+      ? req.files.galleryImage.map(
+          (file) => `${process.env.FILE_PATH}${file.filename}`
+        )
       : [];
 
     const newProduct = await Product.create({
@@ -169,81 +176,123 @@ const createProduct = async (req, res) => {
 
 
 const updateProduct = async (req, res) => {
-    const { id, content, metaTitle, metaDescription, title, author, isActive } = req.body;
-  
-    try {
-      const existing = await Product.findByPk(id);
-  
-      if (!existing) {
-        return res.status(404).json({ message: "Product not found" });
-      }
-  
-      let imagePaths = existing.image; 
-  
-      if (req.file) {
-        if (imagePaths && imagePaths.length > 0) {
-          const oldImagePath = path.join(__dirname, "..", imagePaths[0]);
-          
-          if (fs.existsSync(oldImagePath)) {
-            fs.unlinkSync(oldImagePath);
-          }
-        }
-  
-        imagePaths = [`${process.env.FILE_PATH}${req.file.filename}`];
-      }
-  
-      await Product.update(
-        { content, image: imagePaths, metaTitle, metaDescription, title, author, isActive },
-        { where: { id } }
-      );
-  
-      res.json({ success: true, message: "Product updated successfully" });
-    } catch (error) {
-      console.error("Error updating Product:", error);
-      res.status(500).json({ success: false, message: "Failed to update Product" });
+  const {
+    id,
+    name,
+    description,
+    price,
+    category,
+    subCategory,
+    postedBy,
+    priceLable,
+    brandName,
+    benefits,
+    expiresOn,
+    additionalInformation,
+  } = req.body;
+
+  try {
+    const existing = await Product.findByPk(id);
+
+    if (!existing) {
+      return res.status(404).json({ message: "Product not found" });
     }
+
+    let thumbnailImage = existing.thumbnailImage;
+    let galleryImage = existing.galleryImage || [];
+
+    if (req.files?.thumbnailImage?.[0]) {
+      if (thumbnailImage) {
+        const oldThumbPath = path.join(__dirname, "..", thumbnailImage);
+        if (fs.existsSync(oldThumbPath)) {
+          fs.unlinkSync(oldThumbPath);
+        }
+      }
+
+      thumbnailImage = `${process.env.FILE_PATH}${req.files.thumbnailImage[0].filename}`;
+    }
+
+    if (req.files?.galleryImage?.length > 0) {
+      for (const img of galleryImage) {
+        const oldGalleryPath = path.join(__dirname, "..", img);
+        if (fs.existsSync(oldGalleryPath)) {
+          fs.unlinkSync(oldGalleryPath);
+        }
+      }
+
+      galleryImage = req.files.galleryImage.map(file => `${process.env.FILE_PATH}${file.filename}`);
+    }
+
+    await Product.update(
+      {
+        name,
+        description,
+        price,
+        category,
+        subCategory,
+        postedBy,
+        priceLable,
+        brandName,
+        benefits,
+        expiresOn,
+        additionalInformation,
+        thumbnailImage,
+        galleryImage,
+        status: 'pending'
+      },
+      { where: { id } }
+    );
+
+    res.json({ success: true, message: "Product updated successfully" });
+  } catch (error) {
+    console.error("Error updating Product:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update Product",
+    });
+  }
 };
-  
 
 const deleteProduct = async (req, res) => {
-    const { id } = req.params;
-  
-    try {
-      const ProductData = await Product.findOne({ where: { id } });
-  
-      if (!ProductData) {
-        return res.status(404).json({ success: false, message: "Product not found" });
-      }
-  
-      if (Array.isArray(ProductData.image)) {
-        ProductData.image.forEach((imgPath) => {
-          const fullPath = path.join(__dirname, '..', imgPath);
-          fs.unlink(fullPath, (err) => {
-            if (err) console.error(`Failed to delete file: ${fullPath}`, err);
-          });
+  const { id } = req.params;
+
+  try {
+    const ProductData = await Product.findOne({ where: { id } });
+
+    if (!ProductData) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
+    }
+
+    if (Array.isArray(ProductData.image)) {
+      ProductData.image.forEach((imgPath) => {
+        const fullPath = path.join(__dirname, "..", imgPath);
+        fs.unlink(fullPath, (err) => {
+          if (err) console.error(`Failed to delete file: ${fullPath}`, err);
         });
-      }
-  
-      await Product.destroy({ where: { id } });
-  
-      res.json({
-        success: true,
-        message: "Product deleted successfully",
-      });
-  
-    } catch (error) {
-      console.error("Error deleting Product:", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to delete Product",
       });
     }
+
+    await Product.destroy({ where: { id } });
+
+    res.json({
+      success: true,
+      message: "Product deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting Product:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete Product",
+    });
+  }
 };
-      
+
 module.exports = {
-    getAllProduct,
-    getProductById,
-    createProduct,
-    updateProduct,
-    deleteProduct
-}
+  getAllProduct,
+  getProductById,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+};
