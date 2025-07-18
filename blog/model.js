@@ -7,7 +7,10 @@ module.exports = sequelize.define('Blog', {
     autoIncrement: true,
     primaryKey: true
   },
-  image: {
+  featuredImage: {
+    type: DataTypes.JSON
+  },
+  bannerImage: {
     type: DataTypes.JSON
   },
   author: {

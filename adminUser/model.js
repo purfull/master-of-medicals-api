@@ -1,8 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../db'); 
-const Cart = require('../cart/model');
 
-module.exports = sequelize.define('Customers', {
+module.exports = sequelize.define('AdminUser', {
   id: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
@@ -39,28 +38,20 @@ module.exports = sequelize.define('Customers', {
   postalCode: {
     type: DataTypes.STRING,
   },
-  files: {
+  profile: {
     type: DataTypes.JSON,
   },
-  type: {
-    type: DataTypes.ENUM('hospital', 'pathology-lab', 'diagnostic-center', 'physiotherapist', 'rehabilitation', 'poly-clinic'),
+  role: {
+    type: DataTypes.ENUM('super-admin', 'admin'),
   },
   status: {
-    type: DataTypes.ENUM("active", "in-active"),
-    defaultValue: "active",
+    type: DataTypes.ENUM('active', 'in-active'),
+    defaultValue: 'active',
   },
 
-},  
-{
-  tableName: 'Customers',
+}, {
+  tableName: 'AdminUser',
   timestamps: true,
-  hooks: {
-    afterCreate: async (customer, options) => {
-      await Cart.create({
-        customerId: customer.id
-      });
-    }
-  }
 });
 
 

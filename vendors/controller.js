@@ -1,25 +1,61 @@
 const Vendors = require("./model");
 const bcrypt = require('bcryptjs');
-
+const path = require("path");
+const fs = require("fs");
+const { Op, literal } = require("sequelize");
+const { generateAccessToken, generateRefreshToken } = require('../utils/jwt');
 
 const getAllVendors = async (req, res) => {
   try {
+    const { name, state, type, status, email } = req.query;
+
+    const whereClause = {};
+    const andConditions = [];
+
+    
+      if (name) {
+        whereClause.name = {
+  [Op.like]: `%${name}%`
+};
+      }
+  
+      if (email) {
+  whereClause.email = {
+    [Op.like]: `%${email}%`
+  };
+}
+
+    if (status) whereClause.status = status;
+    if (type) whereClause.type = type;
+    if (state) whereClause.state = state;
+
+    if (andConditions.length > 0) {
+      whereClause[Op.and] = andConditions;
+    }
+
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
 
-    const { count, rows: Vendorss } = await Vendors.findAndCountAll({
+    const baseUrl = `${req.protocol}://${req.get("host")}/`;
+
+    const { count, rows } = await Vendors.findAndCountAll({
+      where: whereClause,
       limit,
       offset,
     });
 
-    const updatedVendorss = Vendorss.map((t) => {
-      return { ...t.toJSON() };
+    const updatedVendors = rows.map((vendor) => {
+      const v = vendor.toJSON();
+      if (v.files && Array.isArray(v.files)) {
+        v.files = v.files.map((imgPath) => `${baseUrl}${imgPath}`);
+      }
+      return v;
     });
 
     res.json({
       success: true,
-      data: updatedVendorss,
+      data: updatedVendors,
       pagination: {
         total: count,
         page,
@@ -29,10 +65,10 @@ const getAllVendors = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("error", error);
+    console.error("Error fetching vendors:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to retrieve Vendorss",
+      message: "Failed to retrieve vendors",
     });
   }
 };
@@ -43,14 +79,16 @@ const getAllVendors = async (req, res) => {
   
     try {
   
+      const baseUrl = `${req.protocol}://${req.get("host")}/`;
       const t = await Vendors.findOne({ where: { id } });
   
       if (!t) {
         return res.status(404).json({ success: false, message: "Vendors not found" });
       }
   
+      const updatedFile = t.files?.map((imgPath) => `${baseUrl}${imgPath}`);
   
-      res.json({ success: true, data: t });
+      res.json({ success: true, data: { ...t.toJSON(), files: updatedFile } });
   
     } catch (error) {
       console.log("error", error);
@@ -63,51 +101,99 @@ const getAllVendors = async (req, res) => {
   
 
 const createVendors = async (req, res) => {
-  const { name, email, phone, password, address, city, state, country, postalCode } = req.body;
+  const { name, email, phone, password, address, city, state, country, postalCode, type } = req.body;
 
   try {
-    
     const hashedPassword = await bcrypt.hash(password, 10);
+    const filePaths = req.files?.map((file) => `${process.env.FILE_PATH}${file.filename}`) || [];
+
     const newVendors = await Vendors.create({
-      name, email, phone, hashedPassword, address, city, state, country, postalCode
+      name,
+      email,
+      phone,
+      password: hashedPassword,
+      address,
+      city,
+      state,
+      country,
+      files: filePaths,
+      postalCode,
+      type,
     });
+
+    const baseUrl = `${req.protocol}://${req.get("host")}/`;
+    const updatedImage = newVendors.files?.map((imgPath) => `${baseUrl}${imgPath}`);
+
+    const updatedVendors = { ...newVendors.toJSON(), files: updatedImage };
+
+    const payload = {
+      id: newVendors.id,
+      name: newVendors.name,
+      email: newVendors.email,
+      phone: newVendors.phone,
+    };
+
+    const accessToken = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
+
+    const isMobile = req.headers["platform"] === "mobile";
+    if (!isMobile) {
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "Strict",
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+      });
+    }
 
     res.json({
       success: true,
-      message: "Vendors created successfully",
-      data: newVendors,
+      accessToken,
+      refreshToken: isMobile ? refreshToken : undefined,
+      message: "Vendor created successfully",
+      data: updatedVendors,
     });
 
   } catch (error) {
-    console.error("Error creating Vendors:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to create Vendors",
-    });
+    console.error("Error creating Vendor:", error);
+    res.status(500).json({ success: false, message: "Failed to create Vendor" });
   }
 };
 
+
 const updateVendors = async (req, res) => {
-    const { id, name, email, phone, password, address, city, state, country, postalCode } = req.body;
-  
-    try {
-      const existing = await Vendors.findByPk(id);
-  
-      if (!existing) {
-        return res.status(404).json({ message: "Vendors not found" });
-      }
-  
-  
-      await Vendors.update(
-        { name, email, phone, password, address, city, state, country, postalCode },
-        { where: { id } }
-      );
-  
-      res.json({ success: true, message: "Vendors updated successfully" });
-    } catch (error) {
-      console.error("Error updating Vendors:", error);
-      res.status(500).json({ success: false, message: "Failed to update Vendors" });
+  const { id, name, email, phone, password, address, city, state, country, postalCode } = req.body;
+
+  try {
+    const existing = await Vendors.findByPk(id);
+
+    if (!existing) {
+      return res.status(404).json({ message: "Vendor not found" });
     }
+
+    let filePaths = existing.files || [];
+
+    if (req.files && req.files.length > 0) {
+      for (const filePath of filePaths) {
+        const oldFilePath = path.join(__dirname, "..", filePath);
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
+        }
+      }
+
+      filePaths = req.files.map(file => `${process.env.FILE_PATH}${file.filename}`);
+    }
+
+    await Vendors.update(
+      { name, email, phone, password, address, city, state, country, postalCode, files: filePaths },
+      { where: { id } }
+    );
+
+    res.json({ success: true, message: "Vendor updated successfully" });
+  } catch (error) {
+    console.error("Error updating vendor:", error);
+    res.status(500).json({ success: false, message: "Failed to update vendor" });
+  }
 };
   
 
@@ -121,7 +207,7 @@ const deleteVendors = async (req, res) => {
         return res.status(404).json({ success: false, message: "Vendors not found" });
       }
   
-      await Vendors.update({isActive: false},{ where: { id } });
+      await Vendors.update({status: "rejected"},{ where: { id } });
   
       res.json({
         success: true,

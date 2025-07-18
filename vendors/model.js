@@ -38,9 +38,19 @@ module.exports = sequelize.define('Vendors', {
   postalCode: {
     type: DataTypes.STRING,
   },
-  isActive: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true,
+  files: {
+    type: DataTypes.JSON,
+  },
+  remarks: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  type: {
+    type: DataTypes.ENUM('manufacturing', 'oem', 'dealer'),
+  },
+  status: {
+    type: DataTypes.ENUM('pending', 'approved','rejected'),
+    defaultValue: "pending",
   },
 
 }, {
