@@ -19,11 +19,10 @@ module.exports = sequelize.define('SupportQuery', {
   },
   remarks: {
     type: DataTypes.TEXT,
-    allowNull: false,
+    allowNull: true,
   },
   status: {
     type: DataTypes.TEXT,
-    allowNull: false,
   },
 
 }, {

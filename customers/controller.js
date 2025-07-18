@@ -4,6 +4,7 @@ const fs = require("fs");
 const { Op, literal } = require("sequelize");
 const Customer = require("./model");
 const { generateAccessToken, generateRefreshToken } = require('../utils/jwt');
+const Cart = require('../cart/model');
 
 
 const getAllCustomer = async (req, res) => {
@@ -111,12 +112,16 @@ const createCustomer = async (req, res) => {
     const newCustomer = await Customer.create({
       name, email, phone, password: hashedPassword, address, city, state, country, postalCode, files: filePaths, type
     });
+    const cart = await Cart.findOne({
+      where: { customerId: newCustomer.id }
+    });
 
     const payload = {
       id: newCustomer.id,
       name: newCustomer.name,
       email: newCustomer.email,
       phone: newCustomer.phone,
+      cartId: cart?.id || null,
     }
 
     const accessToken = generateAccessToken(payload);

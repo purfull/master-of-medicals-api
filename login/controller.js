@@ -2,6 +2,7 @@ const customer = require("../customers/model");
 const vendor = require("../vendors/model");
 const bcrypt = require("bcryptjs");
 const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
+const Cart = require('../cart/model');
 
 const login = async (req, res) => {
   const { type } = req.params; 
@@ -15,6 +16,12 @@ const login = async (req, res) => {
 
 
     const existingUser = await model.findOne({ where: { email } });
+
+     let cart
+    if (type === "customer") {
+      
+      cart = await Cart.findOne({ where: { customerId: existingUser.id } });
+    }
 
     if (!existingUser) {
       return res.status(404).json({ message: "User not found" });
@@ -31,6 +38,7 @@ const login = async (req, res) => {
       name: existingUser.name,
       email: existingUser.email,
       phone: existingUser.phone,
+      ...(type === "customer" && { cartId: cart?.id }),
     }
 
     const accessToken = generateAccessToken(payload);

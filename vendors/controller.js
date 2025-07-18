@@ -207,7 +207,7 @@ const deleteVendors = async (req, res) => {
         return res.status(404).json({ success: false, message: "Vendors not found" });
       }
   
-      await Vendors.update({status: "in-active"},{ where: { id } });
+      await Vendors.update({status: "rejected"},{ where: { id } });
   
       res.json({
         success: true,
