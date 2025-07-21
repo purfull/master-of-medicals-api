@@ -47,6 +47,9 @@ module.exports = sequelize.define('Product', {
   additionalInformation: {
     type: DataTypes.JSON
   },
+  totalOrders: {
+    type: DataTypes.STRING
+  },
   status:  {
     type: DataTypes.ENUM("pending","approved","rejected"),
     defaultValue: "pending"

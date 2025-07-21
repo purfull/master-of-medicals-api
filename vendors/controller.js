@@ -1,29 +1,34 @@
 const Vendors = require("./model");
-const bcrypt = require('bcryptjs');
+const bcrypt = require("bcryptjs");
 const path = require("path");
 const fs = require("fs");
 const { Op, literal } = require("sequelize");
-const { generateAccessToken, generateRefreshToken } = require('../utils/jwt');
+const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
 
 const getAllVendors = async (req, res) => {
   try {
-    const { name, state, type, status, email } = req.query;
+    const { name, state, type, status, email, allVendors } = req.query;
 
     const whereClause = {};
     const andConditions = [];
 
-    
-      if (name) {
-        whereClause.name = {
-  [Op.like]: `%${name}%`
-};
-      }
-  
-      if (email) {
-  whereClause.email = {
-    [Op.like]: `%${email}%`
-  };
-}
+    if (allVendors) {
+      const result = await Vendors.findAndCountAll({
+        attributes: ["id", "name"],
+      });
+      return res.json(result);
+    }
+    if (name) {
+      whereClause.name = {
+        [Op.like]: `%${name}%`,
+      };
+    }
+
+    if (email) {
+      whereClause.email = {
+        [Op.like]: `%${email}%`,
+      };
+    }
 
     if (status) whereClause.status = status;
     if (type) whereClause.type = type;
@@ -63,7 +68,6 @@ const getAllVendors = async (req, res) => {
         totalPages: Math.ceil(count / limit),
       },
     });
-
   } catch (error) {
     console.error("Error fetching vendors:", error);
     res.status(500).json({
@@ -73,39 +77,50 @@ const getAllVendors = async (req, res) => {
   }
 };
 
+const getVendorsById = async (req, res) => {
+  const { id } = req.params;
 
-  const getVendorsById = async (req, res) => {
-    const { id } = req.params;
-  
-    try {
-  
-      const baseUrl = `${req.protocol}://${req.get("host")}/`;
-      const t = await Vendors.findOne({ where: { id } });
-  
-      if (!t) {
-        return res.status(404).json({ success: false, message: "Vendors not found" });
-      }
-  
-      const updatedFile = t.files?.map((imgPath) => `${baseUrl}${imgPath}`);
-  
-      res.json({ success: true, data: { ...t.toJSON(), files: updatedFile } });
-  
-    } catch (error) {
-      console.log("error", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to retrieve Vendors by id",
-      });
+  try {
+    const baseUrl = `${req.protocol}://${req.get("host")}/`;
+    const t = await Vendors.findOne({ where: { id } });
+
+    if (!t) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Vendors not found" });
     }
-  };
-  
+
+    const updatedFile = t.files?.map((imgPath) => `${baseUrl}${imgPath}`);
+
+    res.json({ success: true, data: { ...t.toJSON(), files: updatedFile } });
+  } catch (error) {
+    console.log("error", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve Vendors by id",
+    });
+  }
+};
 
 const createVendors = async (req, res) => {
-  const { name, email, phone, password, address, city, state, country, postalCode, type } = req.body;
+  const {
+    name,
+    email,
+    phone,
+    password,
+    address,
+    city,
+    state,
+    country,
+    postalCode,
+    type,
+  } = req.body;
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    const filePaths = req.files?.map((file) => `${process.env.FILE_PATH}${file.filename}`) || [];
+    const filePaths =
+      req.files?.map((file) => `${process.env.FILE_PATH}${file.filename}`) ||
+      [];
 
     const newVendors = await Vendors.create({
       name,
@@ -122,7 +137,9 @@ const createVendors = async (req, res) => {
     });
 
     const baseUrl = `${req.protocol}://${req.get("host")}/`;
-    const updatedImage = newVendors.files?.map((imgPath) => `${baseUrl}${imgPath}`);
+    const updatedImage = newVendors.files?.map(
+      (imgPath) => `${baseUrl}${imgPath}`
+    );
 
     const updatedVendors = { ...newVendors.toJSON(), files: updatedImage };
 
@@ -153,16 +170,27 @@ const createVendors = async (req, res) => {
       message: "Vendor created successfully",
       data: updatedVendors,
     });
-
   } catch (error) {
     console.error("Error creating Vendor:", error);
-    res.status(500).json({ success: false, message: "Failed to create Vendor" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to create Vendor" });
   }
 };
 
-
 const updateVendors = async (req, res) => {
-  const { id, name, email, phone, password, address, city, state, country, postalCode } = req.body;
+  const {
+    id,
+    name,
+    email,
+    phone,
+    password,
+    address,
+    city,
+    state,
+    country,
+    postalCode,
+  } = req.body;
 
   try {
     const existing = await Vendors.findByPk(id);
@@ -181,52 +209,67 @@ const updateVendors = async (req, res) => {
         }
       }
 
-      filePaths = req.files.map(file => `${process.env.FILE_PATH}${file.filename}`);
+      filePaths = req.files.map(
+        (file) => `${process.env.FILE_PATH}${file.filename}`
+      );
     }
 
     await Vendors.update(
-      { name, email, phone, password, address, city, state, country, postalCode, files: filePaths },
+      {
+        name,
+        email,
+        phone,
+        password,
+        address,
+        city,
+        state,
+        country,
+        postalCode,
+        files: filePaths,
+      },
       { where: { id } }
     );
 
     res.json({ success: true, message: "Vendor updated successfully" });
   } catch (error) {
     console.error("Error updating vendor:", error);
-    res.status(500).json({ success: false, message: "Failed to update vendor" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update vendor" });
   }
 };
-  
 
 const deleteVendors = async (req, res) => {
-    const { id } = req.params;
-  
-    try {
-      const VendorsData = await Vendors.findOne({ where: { id } });
-  
-      if (!VendorsData) {
-        return res.status(404).json({ success: false, message: "Vendors not found" });
-      }
-  
-      await Vendors.update({status: "rejected"},{ where: { id } });
-  
-      res.json({
-        success: true,
-        message: "Vendors deleted successfully",
-      });
-  
-    } catch (error) {
-      console.error("Error deleting Vendors:", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to delete Vendors",
-      });
+  const { id } = req.params;
+
+  try {
+    const VendorsData = await Vendors.findOne({ where: { id } });
+
+    if (!VendorsData) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Vendors not found" });
     }
+
+    await Vendors.update({ status: "rejected" }, { where: { id } });
+
+    res.json({
+      success: true,
+      message: "Vendors deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting Vendors:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete Vendors",
+    });
+  }
 };
-      
+
 module.exports = {
-    getAllVendors,
-    getVendorsById,
-    createVendors,
-    updateVendors,
-    deleteVendors
-}
+  getAllVendors,
+  getVendorsById,
+  createVendors,
+  updateVendors,
+  deleteVendors,
+};

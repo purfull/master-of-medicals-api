@@ -1,30 +1,34 @@
-const bcrypt = require('bcryptjs');
+const bcrypt = require("bcryptjs");
 const path = require("path");
 const fs = require("fs");
 const { Op, literal } = require("sequelize");
 const Customer = require("./model");
-const { generateAccessToken, generateRefreshToken } = require('../utils/jwt');
-const Cart = require('../cart/model');
-
+const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
+const Cart = require("../cart/model");
 
 const getAllCustomer = async (req, res) => {
   try {
-    const { name, email, status, state, type } = req.query;
+    const { name, email, status, state, type, allCustomers } = req.query;
 
     const whereClause = {};
     const andConditions = [];
+    if (allCustomers) {
+      const result = await Customer.findAndCountAll({
+        attributes: ["id", "name"],
+      });
+      return res.json(result);
+    }
+    if (name) {
+      whereClause.name = {
+        [Op.like]: `%${name}%`,
+      };
+    }
 
-      if (name) {
-        whereClause.name = {
-  [Op.like]: `%${name}%`
-};
-      }
-  
-      if (email) {
-  whereClause.email = {
-    [Op.like]: `%${email}%`
-  };
-}
+    if (email) {
+      whereClause.email = {
+        [Op.like]: `%${email}%`,
+      };
+    }
 
     if (status) whereClause.status = status;
     if (type) whereClause.type = type;
@@ -64,7 +68,6 @@ const getAllCustomer = async (req, res) => {
         totalPages: Math.ceil(count / limit),
       },
     });
-
   } catch (error) {
     console.error("Error retrieving customers:", error);
     res.status(500).json({
@@ -74,46 +77,66 @@ const getAllCustomer = async (req, res) => {
   }
 };
 
-
-  const getCustomerById = async (req, res) => {
-    const { id } = req.params;
-  
-    try {
-  
-      const baseUrl = `${req.protocol}://${req.get("host")}/`;
-      const t = await Customer.findOne({ where: { id } });
-  
-      if (!t) {
-        return res.status(404).json({ success: false, message: "Customer not found" });
-      }
-  
-      const updatedImage = t.files?.map((imgPath) => `${baseUrl}${imgPath}`);
-  
-      res.json({ success: true, data: { ...t.toJSON(), files: updatedImage } });
-  
-    } catch (error) {
-      console.log("error", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to retrieve Customer by id",
-      });
-    }
-  };
-  
-
-const createCustomer = async (req, res) => {
-  const { name, email, phone, password, address, city, state, country, postalCode, type } = req.body;
+const getCustomerById = async (req, res) => {
+  const { id } = req.params;
 
   try {
+    const baseUrl = `${req.protocol}://${req.get("host")}/`;
+    const t = await Customer.findOne({ where: { id } });
 
+    if (!t) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Customer not found" });
+    }
+
+    const updatedImage = t.files?.map((imgPath) => `${baseUrl}${imgPath}`);
+
+    res.json({ success: true, data: { ...t.toJSON(), files: updatedImage } });
+  } catch (error) {
+    console.log("error", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve Customer by id",
+    });
+  }
+};
+
+const createCustomer = async (req, res) => {
+  const {
+    name,
+    email,
+    phone,
+    password,
+    address,
+    city,
+    state,
+    country,
+    postalCode,
+    type,
+  } = req.body;
+
+  try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    const filePaths = req.files?.map((file) => `${process.env.FILE_PATH}${file.filename}`) || [];
-    // req.files?.map(file => path.relative("uploads", file.path).replace(/\\/g, "/")) 
+    const filePaths =
+      req.files?.map((file) => `${process.env.FILE_PATH}${file.filename}`) ||
+      [];
+    // req.files?.map(file => path.relative("uploads", file.path).replace(/\\/g, "/"))
     const newCustomer = await Customer.create({
-      name, email, phone, password: hashedPassword, address, city, state, country, postalCode, files: filePaths, type
+      name,
+      email,
+      phone,
+      password: hashedPassword,
+      address,
+      city,
+      state,
+      country,
+      postalCode,
+      files: filePaths,
+      type,
     });
     const cart = await Cart.findOne({
-      where: { customerId: newCustomer.id }
+      where: { customerId: newCustomer.id },
     });
 
     const payload = {
@@ -122,14 +145,14 @@ const createCustomer = async (req, res) => {
       email: newCustomer.email,
       phone: newCustomer.phone,
       cartId: cart?.id || null,
-    }
+    };
 
     const accessToken = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: false, 
+      secure: false,
       sameSite: "Strict",
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
@@ -139,7 +162,6 @@ const createCustomer = async (req, res) => {
       message: "Customer created successfully",
       data: newCustomer,
     });
-
   } catch (error) {
     console.error("Error creating Customer:", error);
     res.status(500).json({
@@ -150,7 +172,8 @@ const createCustomer = async (req, res) => {
 };
 
 const updateCustomer = async (req, res) => {
-  const { id, name, email, phone, address, city, state, country, postalCode } = req.body;
+  const { id, name, email, phone, address, city, state, country, postalCode } =
+    req.body;
 
   try {
     const existing = await Customer.findByPk(id);
@@ -169,7 +192,9 @@ const updateCustomer = async (req, res) => {
         }
       }
 
-      filePaths = req.files.map(file => `${process.env.FILE_PATH}${file.filename}`);
+      filePaths = req.files.map(
+        (file) => `${process.env.FILE_PATH}${file.filename}`
+      );
     }
 
     await Customer.update(
@@ -182,7 +207,7 @@ const updateCustomer = async (req, res) => {
         state,
         country,
         postalCode,
-        files: filePaths
+        files: filePaths,
       },
       { where: { id } }
     );
@@ -190,42 +215,43 @@ const updateCustomer = async (req, res) => {
     res.json({ success: true, message: "Customer updated successfully" });
   } catch (error) {
     console.error("Error updating Customer:", error);
-    res.status(500).json({ success: false, message: "Failed to update Customer" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update Customer" });
   }
 };
 
-  
-
 const deleteCustomer = async (req, res) => {
-    const { id } = req.params;
-  
-    try {
-      const CustomerData = await Customer.findOne({ where: { id } });
-  
-      if (!CustomerData) {
-        return res.status(404).json({ success: false, message: "Customer not found" });
-      }
-  
-      await Customer.update({status: "in-active"},{ where: { id } });
-  
-      res.json({
-        success: true,
-        message: "Customer deleted successfully",
-      });
-  
-    } catch (error) {
-      console.error("Error deleting Customer:", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to delete Customer",
-      });
+  const { id } = req.params;
+
+  try {
+    const CustomerData = await Customer.findOne({ where: { id } });
+
+    if (!CustomerData) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Customer not found" });
     }
+
+    await Customer.update({ status: "in-active" }, { where: { id } });
+
+    res.json({
+      success: true,
+      message: "Customer deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting Customer:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete Customer",
+    });
+  }
 };
-      
+
 module.exports = {
-    getAllCustomer,
-    getCustomerById,
-    createCustomer,
-    updateCustomer,
-    deleteCustomer
-}
+  getAllCustomer,
+  getCustomerById,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
+};

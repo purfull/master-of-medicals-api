@@ -1,21 +1,46 @@
+const sequelize = require('../db'); 
 const Orders = require("./model");
+const Product = require("../product/model")
+const VendorOrders = require("../vendorOrders/model")
 
 const getAllOrders = async (req, res) => {
   try {
-    
-    const { status } = req.query;
+    const { status, customerId, vendorId, page: pageQuery, limit: limitQuery } = req.query;
 
-    const whereClause = {};
-
-    if (status) whereClause.status = status;
-
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = parseInt(pageQuery) || 1;
+    const limit = parseInt(limitQuery) || 10;
     const offset = (page - 1) * limit;
 
-    const { count, rows } = await Orders.findAndCountAll({ where: whereClause, limit, offset });
+    if (vendorId) {
+      const { count, rows } = await VendorOrders.findAndCountAll({
+        where: { vendorId },
+        limit,
+        offset,
+      });
 
-    res.json({
+      return res.json({
+        success: true,
+        data: rows,
+        pagination: {
+          total: count,
+          page,
+          limit,
+          totalPages: Math.ceil(count / limit),
+        },
+      });
+    }
+
+    const whereClause = {};
+    if (status) whereClause.status = status;
+    if (customerId) whereClause.customerId = customerId;
+
+    const { count, rows } = await Orders.findAndCountAll({
+      where: whereClause,
+      limit,
+      offset,
+    });
+
+    return res.json({
       success: true,
       data: rows,
       pagination: {
@@ -52,17 +77,48 @@ const getOrderById = async (req, res) => {
 };
 
 const createOrder = async (req, res) => {
-  const { customerInfo, productInfo, subTotal, gstAmount, totalCost, status } = req.body;
+  const { customerId, customerInfo, productInfo, subTotal, gstAmount, totalCost, status } = req.body;
+
+  const t = await sequelize.transaction(); 
 
   try {
     const newOrder = await Orders.create({
+      customerId,
       customerInfo,
       productInfo,
       subTotal,
       gstAmount,
       totalCost,
       status,
-    });
+    }, { transaction: t });
+
+    await Promise.all(
+      productInfo.map(async (item) => {
+        const productId = item.productId;
+
+        const product = await Product.findByPk(productId, { transaction: t });
+
+        if (product) {
+          const currentTotal = parseInt(product.totalOrders || '0');
+          await VendorOrders.create({
+            customerId,
+            customerInfo,
+            vendorId: product.postedBy,
+            productInfo: item,
+            subTotal: item.subTotal,
+            gstAmount: item.gst,
+            totalCost: item.total,
+          }, { transaction: t })
+
+          await product.update(
+            { totalOrders: (currentTotal + 1).toString() },
+            { transaction: t }
+          );
+        }
+      })
+    );
+
+    await t.commit(); 
 
     res.json({
       success: true,
@@ -70,14 +126,16 @@ const createOrder = async (req, res) => {
       data: newOrder,
     });
   } catch (error) {
+    await t.rollback(); 
     console.error("Error creating order:", error);
     res.status(500).json({ success: false, message: "Failed to create order" });
   }
 };
 
+
 const updateOrder = async (req, res) => {
   const { id } = req.params;
-  const { customerInfo, productInfo, subTotal, gstAmount, totalCost, status } = req.body;
+  const { remark, status } = req.body;
 
   try {
     const order = await Orders.findByPk(id);
@@ -87,7 +145,7 @@ const updateOrder = async (req, res) => {
     }
 
     await Orders.update(
-      { customerInfo, productInfo, subTotal, gstAmount, totalCost, status },
+      { remark, status },
       { where: { id } }
     );
 

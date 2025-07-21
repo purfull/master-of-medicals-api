@@ -46,8 +46,8 @@ module.exports = sequelize.define('Customers', {
     type: DataTypes.ENUM('hospital', 'pathology-lab', 'diagnostic-center', 'physiotherapist', 'rehabilitation', 'poly-clinic'),
   },
   status: {
-    type: DataTypes.ENUM("active", "in-active"),
-    defaultValue: "active",
+    type: DataTypes.ENUM('pending', 'approved','rejected'),
+    defaultValue: "pending",
   },
 
 },  

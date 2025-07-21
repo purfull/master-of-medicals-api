@@ -4,19 +4,19 @@ const { Op, literal } = require("sequelize");
 
 const getAllQuery = async (req, res) => {
   try {
-    const { title, author } = req.query;
+    const { name, status } = req.query;
     const whereClause = {};
     const andConditions = [];
 
-    if (title) {
-      whereClause.title = {
-        [Op.like]: `%${title}%`,
+    if (name) {
+      whereClause.name = {
+        [Op.like]: `%${name}%`,
       };
     }
 
-    if (author) {
-      whereClause.author = {
-        [Op.like]: `%${author}%`,
+    if (status) {
+      whereClause.status = {
+        [Op.like]: `%${status}%`,
       };
     }
     if (andConditions.length > 0) {

@@ -5,8 +5,49 @@ const { Op, fn, col, where, literal } = require("sequelize");
 
 const getAllProduct = async (req, res) => {
   try {
-    const { name, category, subCategory, status, userId, brandName } =
-      req.query;
+    const {
+      newArrival,
+    } = req.query;
+
+    const baseUrl = `${req.protocol}://${req.get("host")}/`;
+
+    if (newArrival) {
+      const latestProducts = await Product.findAll({
+        where: { status: "approved" },
+        limit: 4,
+        order: [["createdAt", "DESC"]],
+        attributes: {
+          exclude: [
+            "createdAt",
+            "updatedAt",
+            "galleryImage",
+            "additionalInformation",
+          ],
+        },
+      });
+
+      const updatedProducts = latestProducts.map((t) => {
+        const updatedThumbImage = t.thumbnailImage
+          ? `${baseUrl}${t.thumbnailImage}`
+          : null;
+        return { ...t.toJSON(), thumbnailImage: updatedThumbImage };
+      });
+
+      return res.json({
+        success: true,
+        data: updatedProducts,
+      });
+    }
+
+    const {
+      name,
+      category,
+      subCategory,
+      status,
+      userId,
+      brandName,
+      bestSeller,
+    } = req.query;
 
     const whereClause = {};
 
@@ -20,18 +61,21 @@ const getAllProduct = async (req, res) => {
       whereClause.category = category;
     }
 
-    if (brandName) whereClause.brandName = brandName;
+    if (brandName) {
+      whereClause.brandName = brandName;
+    }
+
     if (status) {
       whereClause.status = status;
     }
+
     if (subCategory) {
       whereClause.subCategory = subCategory;
     }
+
     if (userId) {
       whereClause.postedBy = userId;
     }
-
-    const baseUrl = `${req.protocol}://${req.get("host")}/`;
 
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -55,7 +99,6 @@ const getAllProduct = async (req, res) => {
       const updatedThumbImage = t.thumbnailImage
         ? `${baseUrl}${t.thumbnailImage}`
         : null;
-      // const updatedGalleryImage = t.image?.map((imgPath) => `${baseUrl}${imgPath}`);
       return { ...t.toJSON(), thumbnailImage: updatedThumbImage };
     });
 
@@ -77,6 +120,7 @@ const getAllProduct = async (req, res) => {
     });
   }
 };
+
 
 const getProductById = async (req, res) => {
   const { id } = req.params;
