@@ -1,4 +1,6 @@
 const Product = require("./model");
+const Category = require("../category/model")
+const SubCategory = require("../subCategory/model")
 const path = require("path");
 const fs = require("fs");
 const { Op, fn, col, where, literal } = require("sequelize");
@@ -14,7 +16,7 @@ const getAllProduct = async (req, res) => {
     if (newArrival) {
       const latestProducts = await Product.findAll({
         where: { status: "approved" },
-        limit: 4,
+        limit: 5,
         order: [["createdAt", "DESC"]],
         attributes: {
           exclude: [
@@ -70,7 +72,7 @@ const getAllProduct = async (req, res) => {
     }
 
     if (subCategory) {
-      whereClause.subCategory = subCategory;
+      whereClause.subCategoryId = subCategory;
     }
 
     if (userId) {
@@ -121,6 +123,50 @@ const getAllProduct = async (req, res) => {
   }
 };
 
+const getProductCatagory = async (req, res) => {
+
+  try {
+    
+    const t = await Category.findAll();
+
+    if (!t) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Product Catagory not found" });
+    }
+
+    res.json({ success: true, data: t });
+  } catch (error) {
+    console.log("error", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve Product Catagory",
+    });
+  }
+};
+
+const getProductSubCatagory = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    
+    const t = await SubCategory.findAll({ where: {categoryId: id}});
+
+    if (!t) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Product sub Catagory not found" });
+    }
+
+    res.json({ success: true, data: t });
+  } catch (error) {
+    console.log("error", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve Product sub Catagory",
+    });
+  }
+};
 
 const getProductById = async (req, res) => {
   const { id } = req.params;
@@ -164,18 +210,18 @@ const getProductById = async (req, res) => {
 
 const createProduct = async (req, res) => {
   const {
-    name,
-    description,
-    price,
-    category,
-    subCategory,
-    postedBy,
-    priceLable,
-    brandName,
-    benefits,
-    expiresOn,
-    additionalInformation,
-  } = req.body;
+  name,
+  description,
+  price,
+  subCategoryId,
+  postedBy,
+  priceLable,
+  brandName,
+  benefits,
+  expiresOn,
+  additionalInformation,
+} = req.body;
+
 
   try {
     const thumbnailImage = req.files?.thumbnailImage?.[0]
@@ -189,20 +235,20 @@ const createProduct = async (req, res) => {
       : [];
 
     const newProduct = await Product.create({
-      name,
-      description,
-      category,
-      subCategory,
-      thumbnailImage,
-      galleryImage,
-      price,
-      postedBy,
-      priceLable,
-      brandName,
-      benefits,
-      expiresOn,
-      additionalInformation,
-    });
+  name,
+  description,
+  price,
+  subCategoryId,
+  postedBy,
+  priceLable,
+  brandName,
+  benefits,
+  expiresOn,
+  additionalInformation,
+  thumbnailImage,
+  galleryImage,
+});
+
 
     res.json({
       success: true,
@@ -268,24 +314,24 @@ const updateProduct = async (req, res) => {
     }
 
     await Product.update(
-      {
-        name,
-        description,
-        price,
-        category,
-        subCategory,
-        postedBy,
-        priceLable,
-        brandName,
-        benefits,
-        expiresOn,
-        additionalInformation,
-        thumbnailImage,
-        galleryImage,
-        status: 'pending'
-      },
-      { where: { id } }
-    );
+  {
+    name,
+    description,
+    price,
+    subCategoryId,
+    postedBy,
+    priceLable,
+    brandName,
+    benefits,
+    expiresOn,
+    additionalInformation,
+    thumbnailImage,
+    galleryImage,
+    status: 'pending'
+  },
+  { where: { id } }
+);
+
 
     res.json({ success: true, message: "Product updated successfully" });
   } catch (error) {
@@ -339,4 +385,6 @@ module.exports = {
   createProduct,
   updateProduct,
   deleteProduct,
+  getProductCatagory,
+  getProductSubCatagory
 };

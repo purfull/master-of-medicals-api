@@ -69,7 +69,10 @@ const getOrderById = async (req, res) => {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    res.json({ success: true, data: order });
+    const vendorOrders = await VendorOrders.findAll({where: {customerOrderId: order.id}});
+
+
+    res.json({ success: true, data: order, vendors: vendorOrders });
   } catch (error) {
     console.error("Error fetching order:", error);
     res.status(500).json({ success: false, message: "Failed to retrieve order" });
@@ -101,6 +104,7 @@ const createOrder = async (req, res) => {
         if (product) {
           const currentTotal = parseInt(product.totalOrders || '0');
           await VendorOrders.create({
+            customerOrderId: newOrder.id,
             customerId,
             customerInfo,
             vendorId: product.postedBy,
@@ -134,8 +138,7 @@ const createOrder = async (req, res) => {
 
 
 const updateOrder = async (req, res) => {
-  const { id } = req.params;
-  const { remark, status } = req.body;
+  const { id, remark, status } = req.body;
 
   try {
     const order = await Orders.findByPk(id);

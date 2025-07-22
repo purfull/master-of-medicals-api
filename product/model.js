@@ -13,11 +13,18 @@ module.exports = sequelize.define('Product', {
   description: {
     type: DataTypes.TEXT,
   },
-  category: {
-    type: DataTypes.TEXT,
-  },
-  subCategory: {
-    type: DataTypes.TEXT,
+
+  // rattings, bulk discount, shelf life, how to use, benifits, Side Effects, Brand Name,Mediguard Essentials, Manufacturer Details, Country of Origin, Expires On or After, Mediguard Essentials
+
+  // category: {
+  //   type: DataTypes.TEXT,
+  // },
+  // subCategory: {
+  //   type: DataTypes.TEXT,
+  // },
+  subCategoryId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
   },
   postedBy: {
     type: DataTypes.INTEGER,
@@ -48,7 +55,8 @@ module.exports = sequelize.define('Product', {
     type: DataTypes.JSON
   },
   totalOrders: {
-    type: DataTypes.STRING
+    type: DataTypes.STRING,
+    defaultValue: null
   },
   status:  {
     type: DataTypes.ENUM("pending","approved","rejected"),

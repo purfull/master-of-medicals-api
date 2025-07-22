@@ -12,6 +12,9 @@ const VendorOrders = sequelize.define(
     vendorId: {
       type: DataTypes.INTEGER,
     },
+    customerOrderId: {
+        type: DataTypes.INTEGER,
+    },
     customerInfo: {
       type: DataTypes.JSON,
     },
