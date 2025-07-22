@@ -1,6 +1,7 @@
 const Product = require("./model");
-const Category = require("../category/model")
-const SubCategory = require("../subCategory/model")
+const Category = require("../category/model");
+const SubCategory = require("../subCategory/model");
+const ProductReview = require("../productReview/model");
 const path = require("path");
 const fs = require("fs");
 const { Op, fn, col, where, literal } = require("sequelize");
@@ -9,81 +10,30 @@ const getAllProduct = async (req, res) => {
   try {
     const {
       newArrival,
-    } = req.query;
-
-    const baseUrl = `${req.protocol}://${req.get("host")}/`;
-
-    if (newArrival) {
-      const latestProducts = await Product.findAll({
-        where: { status: "approved" },
-        limit: 5,
-        order: [["createdAt", "DESC"]],
-        attributes: {
-          exclude: [
-            "createdAt",
-            "updatedAt",
-            "galleryImage",
-            "additionalInformation",
-          ],
-        },
-      });
-
-      const updatedProducts = latestProducts.map((t) => {
-        const updatedThumbImage = t.thumbnailImage
-          ? `${baseUrl}${t.thumbnailImage}`
-          : null;
-        return { ...t.toJSON(), thumbnailImage: updatedThumbImage };
-      });
-
-      return res.json({
-        success: true,
-        data: updatedProducts,
-      });
-    }
-
-    const {
       name,
       category,
       subCategory,
       status,
       userId,
       brandName,
-      bestSeller,
     } = req.query;
 
+    const baseUrl = `${req.protocol}://${req.get("host")}/`;
     const whereClause = {};
 
-    if (name) {
-      whereClause.name = {
-        [Op.like]: `%${name}%`,
-      };
-    }
-
-    if (category) {
-      whereClause.category = category;
-    }
-
-    if (brandName) {
-      whereClause.brandName = brandName;
-    }
-
-    if (status) {
-      whereClause.status = status;
-    }
-
-    if (subCategory) {
-      whereClause.subCategoryId = subCategory;
-    }
-
-    if (userId) {
-      whereClause.postedBy = userId;
-    }
+    if (name) whereClause.name = { [Op.like]: `%${name}%` };
+    if (category) whereClause.category = category;
+    if (brandName) whereClause.brandName = brandName;
+    if (status) whereClause.status = status;
+    if (subCategory) whereClause.subCategoryId = subCategory;
+    if (userId) whereClause.postedBy = userId;
 
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
 
-    const { count, rows: products } = await Product.findAndCountAll({
+    const queryOptions = {
+      where: whereClause,
       limit,
       offset,
       attributes: {
@@ -94,25 +44,64 @@ const getAllProduct = async (req, res) => {
           "additionalInformation",
         ],
       },
-      where: whereClause,
+      include: [
+        {
+          model: ProductReview,
+          attributes: [], 
+          required: false,
+        },
+      ],
+      attributes: {
+        include: [
+          [fn("AVG", col("productReviews.rating")), "averageRating"],
+          [fn("COUNT", col("productReviews.id")), "reviewCount"],
+        ],
+      },
+      group: ["Product.id"],
+
+      group: ["Product.id"],
+      subQuery: false,
+    };
+
+    if (newArrival) {
+      queryOptions.where = { status: "approved" };
+      queryOptions.limit = 5;
+      queryOptions.order = [["createdAt", "DESC"]];
+    }
+
+    const products = await Product.findAll(queryOptions);
+
+    const updatedProducts = products.map((product) => {
+      const data = product.toJSON();
+      data.thumbnailImage = data.thumbnailImage
+        ? `${baseUrl}${data.thumbnailImage}`
+        : null;
+      data.averageRating = parseFloat(
+        data.ProductReviews?.averageRating || 0
+      ).toFixed(1);
+      data.reviewCount = parseInt(data.ProductReviews?.reviewCount || 0);
+      delete data.ProductReviews;
+      return data;
     });
 
-    const updatedProducts = products.map((t) => {
-      const updatedThumbImage = t.thumbnailImage
-        ? `${baseUrl}${t.thumbnailImage}`
-        : null;
-      return { ...t.toJSON(), thumbnailImage: updatedThumbImage };
-    });
+    let count = 0;
+    if (!newArrival) {
+      count = await Product.count({ where: whereClause });
+    }
 
     res.json({
       success: true,
       data: updatedProducts,
-      pagination: {
-        total: count,
-        page,
-        limit,
-        totalPages: Math.ceil(count / limit),
-      },
+      ...(newArrival
+        ? {}
+        : {
+            pagination: {
+              total: count,
+              page,
+              limit,
+              totalPages: Math.ceil(count / limit),
+            },
+          }),
     });
   } catch (error) {
     console.error("error", error);
@@ -124,9 +113,7 @@ const getAllProduct = async (req, res) => {
 };
 
 const getProductCatagory = async (req, res) => {
-
   try {
-    
     const t = await Category.findAll();
 
     if (!t) {
@@ -149,8 +136,7 @@ const getProductSubCatagory = async (req, res) => {
   const { id } = req.params;
 
   try {
-    
-    const t = await SubCategory.findAll({ where: {categoryId: id}});
+    const t = await SubCategory.findAll({ where: { categoryId: id } });
 
     if (!t) {
       return res
@@ -210,18 +196,17 @@ const getProductById = async (req, res) => {
 
 const createProduct = async (req, res) => {
   const {
-  name,
-  description,
-  price,
-  subCategoryId,
-  postedBy,
-  priceLable,
-  brandName,
-  benefits,
-  expiresOn,
-  additionalInformation,
-} = req.body;
-
+    name,
+    description,
+    price,
+    subCategoryId,
+    postedBy,
+    priceLable,
+    brandName,
+    benefits,
+    expiresOn,
+    additionalInformation,
+  } = req.body;
 
   try {
     const thumbnailImage = req.files?.thumbnailImage?.[0]
@@ -235,20 +220,19 @@ const createProduct = async (req, res) => {
       : [];
 
     const newProduct = await Product.create({
-  name,
-  description,
-  price,
-  subCategoryId,
-  postedBy,
-  priceLable,
-  brandName,
-  benefits,
-  expiresOn,
-  additionalInformation,
-  thumbnailImage,
-  galleryImage,
-});
-
+      name,
+      description,
+      price,
+      subCategoryId,
+      postedBy,
+      priceLable,
+      brandName,
+      benefits,
+      expiresOn,
+      additionalInformation,
+      thumbnailImage,
+      galleryImage,
+    });
 
     res.json({
       success: true,
@@ -263,7 +247,6 @@ const createProduct = async (req, res) => {
     });
   }
 };
-
 
 const updateProduct = async (req, res) => {
   const {
@@ -310,28 +293,29 @@ const updateProduct = async (req, res) => {
         }
       }
 
-      galleryImage = req.files.galleryImage.map(file => `${process.env.FILE_PATH}${file.filename}`);
+      galleryImage = req.files.galleryImage.map(
+        (file) => `${process.env.FILE_PATH}${file.filename}`
+      );
     }
 
     await Product.update(
-  {
-    name,
-    description,
-    price,
-    subCategoryId,
-    postedBy,
-    priceLable,
-    brandName,
-    benefits,
-    expiresOn,
-    additionalInformation,
-    thumbnailImage,
-    galleryImage,
-    status: 'pending'
-  },
-  { where: { id } }
-);
-
+      {
+        name,
+        description,
+        price,
+        subCategoryId,
+        postedBy,
+        priceLable,
+        brandName,
+        benefits,
+        expiresOn,
+        additionalInformation,
+        thumbnailImage,
+        galleryImage,
+        status: "pending",
+      },
+      { where: { id } }
+    );
 
     res.json({ success: true, message: "Product updated successfully" });
   } catch (error) {
@@ -386,5 +370,5 @@ module.exports = {
   updateProduct,
   deleteProduct,
   getProductCatagory,
-  getProductSubCatagory
+  getProductSubCatagory,
 };

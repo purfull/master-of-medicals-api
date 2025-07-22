@@ -46,6 +46,7 @@ const corsOptions = {
   const bannerRoutes = require('./banner/routes')
   const offerBannerRoutes = require('./offerbanner/routes')
   const brandRoutes = require('./brand/routes')
+  const reviewRoutes = require('./productReview/route')
 
   require('./relationship');
 
@@ -72,6 +73,7 @@ app.use('/address', addressRoutes);
 app.use('/banner', bannerRoutes);
 app.use('/offer-banner', offerBannerRoutes);
 app.use('/brand', brandRoutes);
+app.use('/review', reviewRoutes);
 
 
 db.sync({ force: false })

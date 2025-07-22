@@ -5,6 +5,14 @@ const Address = require('./address/model');
 const Product = require('./product/model');
 const Category = require('./category/model');
 const SubCategory = require('./subCategory/model');
+const Review = require('./productReview/model');
+
+Product.hasMany(Review, { foreignKey: 'productId', onDelete: 'CASCADE' });
+Review.belongsTo(Product, { foreignKey: 'productId' });
+
+Customer.hasMany(Review, { foreignKey: 'customerId' });
+Review.belongsTo(Customer, { foreignKey: 'customerId' });
+
 
 Category.hasMany(SubCategory, {
   foreignKey: 'categoryId',
