@@ -46,6 +46,7 @@ const getAllVendors = async (req, res) => {
 
     const { count, rows } = await Vendors.findAndCountAll({
       where: whereClause,
+      order: [["createdAt", "DESC"]], 
       limit,
       offset,
     });

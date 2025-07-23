@@ -14,6 +14,7 @@ const getAllOrders = async (req, res) => {
     if (vendorId) {
       const { count, rows } = await VendorOrders.findAndCountAll({
         where: { vendorId },
+        order: [["createdAt", "DESC"]], 
         limit,
         offset,
       });
@@ -36,6 +37,7 @@ const getAllOrders = async (req, res) => {
 
     const { count, rows } = await Orders.findAndCountAll({
       where: whereClause,
+      order: [["createdAt", "DESC"]], 
       limit,
       offset,
     });

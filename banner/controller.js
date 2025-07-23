@@ -22,6 +22,7 @@ const getAllBanners = async (req, res) => {
 
     const { count, rows: banners } = await banner.findAndCountAll({
       where: whereClause,
+      order: [["createdAt", "DESC"]], 
       limit,
       offset,
     });

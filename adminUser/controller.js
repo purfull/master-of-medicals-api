@@ -38,6 +38,7 @@ const getAllAdminUser = async (req, res) => {
 
     const { count, rows: admin } = await AdminUser.findAndCountAll({
       where: whereClause,
+      order: [["createdAt", "DESC"]], 
       limit,
       offset,
     });

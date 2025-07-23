@@ -29,6 +29,7 @@ const getAllQuery = async (req, res) => {
 
     const { count, rows: querys } = await query.findAndCountAll({
       where: whereClause,
+      order: [["createdAt", "DESC"]], 
       limit,
       offset,
     });

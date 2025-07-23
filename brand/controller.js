@@ -19,6 +19,7 @@ const getAllBrand = async (req, res) => {
 
     const { count, rows: brandData } = await brand.findAndCountAll({
       where: whereClause,
+      order: [["createdAt", "DESC"]], 
       limit,
       offset,
     });

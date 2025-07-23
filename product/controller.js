@@ -4,7 +4,7 @@ const SubCategory = require("../subCategory/model");
 const ProductReview = require("../productReview/model");
 const path = require("path");
 const fs = require("fs");
-const { Op, fn, col, where, literal } = require("sequelize");
+const { Op, fn, col, where, cast, literal } = require("sequelize");
 
 const getAllProduct = async (req, res) => {
   try {
@@ -16,6 +16,8 @@ const getAllProduct = async (req, res) => {
       status,
       userId,
       brandName,
+      minPrice,
+      maxPrice,
     } = req.query;
 
     const baseUrl = `${req.protocol}://${req.get("host")}/`;
@@ -27,6 +29,18 @@ const getAllProduct = async (req, res) => {
     if (status) whereClause.status = status;
     if (subCategory) whereClause.subCategoryId = subCategory;
     if (userId) whereClause.postedBy = userId;
+
+    if (minPrice || maxPrice) {
+      whereClause.price = {};
+
+      if (minPrice) {
+        whereClause.price[Op.gte] = parseInt(minPrice);
+      }
+
+      if (maxPrice) {
+        whereClause.price[Op.lte] = parseInt(maxPrice);
+      }
+    }
 
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -47,7 +61,7 @@ const getAllProduct = async (req, res) => {
       include: [
         {
           model: ProductReview,
-          attributes: [], 
+          attributes: [],
           required: false,
         },
       ],
@@ -61,6 +75,7 @@ const getAllProduct = async (req, res) => {
 
       group: ["Product.id"],
       subQuery: false,
+      order: [["createdAt", "DESC"]],
     };
 
     if (newArrival) {
@@ -154,6 +169,32 @@ const getProductSubCatagory = async (req, res) => {
   }
 };
 
+const getAllCategoriesWithSubcategories = async (req, res) => {
+  try {
+    const categories = await Category.findAll({
+      include: [
+        {
+          model: SubCategory,
+        },
+      ],
+    });
+
+    if (!categories || categories.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No categories found" });
+    }
+
+    res.json({ success: true, data: categories });
+  } catch (error) {
+    console.log("error", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve categories and subcategories",
+    });
+  }
+};
+
 const getProductById = async (req, res) => {
   const { id } = req.params;
 
@@ -162,9 +203,19 @@ const getProductById = async (req, res) => {
 
     const t = await Product.findOne({
       where: { id },
-      // attributes: {
-      //  exclude: ['createdAt', 'updatedAt', 'thumbnailImage', 'additionalInformation'],
-      // }
+      include: [
+        {
+          model: ProductReview,
+          attributes: [], // don't fetch all reviews, just for aggregation
+        },
+      ],
+      attributes: {
+        include: [
+          [fn("AVG", col("productReviews.rating")), "averageRating"],
+          [fn("COUNT", col("productReviews.id")), "reviewCount"],
+        ],
+      },
+      group: ["Product.id"], // required with aggregation
     });
 
     if (!t) {
@@ -222,7 +273,7 @@ const createProduct = async (req, res) => {
     const newProduct = await Product.create({
       name,
       description,
-      price,
+      price: parseInt(price),
       subCategoryId,
       postedBy,
       priceLable,
@@ -254,7 +305,7 @@ const updateProduct = async (req, res) => {
     name,
     description,
     price,
-    category,
+    remarks,
     subCategory,
     postedBy,
     priceLable,
@@ -262,6 +313,7 @@ const updateProduct = async (req, res) => {
     benefits,
     expiresOn,
     additionalInformation,
+    status,
   } = req.body;
 
   try {
@@ -302,8 +354,9 @@ const updateProduct = async (req, res) => {
       {
         name,
         description,
-        price,
-        subCategoryId,
+        price: parseInt(price),
+        remarks,
+        subCategoryId: subCategory,
         postedBy,
         priceLable,
         brandName,
@@ -312,7 +365,7 @@ const updateProduct = async (req, res) => {
         additionalInformation,
         thumbnailImage,
         galleryImage,
-        status: "pending",
+        status,
       },
       { where: { id } }
     );
@@ -371,4 +424,5 @@ module.exports = {
   deleteProduct,
   getProductCatagory,
   getProductSubCatagory,
+  getAllCategoriesWithSubcategories,
 };

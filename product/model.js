@@ -58,6 +58,10 @@ module.exports = sequelize.define('Product', {
     type: DataTypes.STRING,
     defaultValue: null
   },
+  remarks: {
+    type: DataTypes.TEXT,
+
+  },
   status:  {
     type: DataTypes.ENUM("pending","approved","rejected"),
     defaultValue: "pending"

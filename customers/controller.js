@@ -46,6 +46,7 @@ const getAllCustomer = async (req, res) => {
 
     const { count, rows } = await Customer.findAndCountAll({
       where: whereClause,
+      order: [["createdAt", "DESC"]], 
       limit,
       offset,
     });
@@ -114,6 +115,7 @@ const createCustomer = async (req, res) => {
     country,
     postalCode,
     type,
+    additionalInformation
   } = req.body;
 
   try {
@@ -132,6 +134,7 @@ const createCustomer = async (req, res) => {
       state,
       country,
       postalCode,
+      additionalInformation,
       files: filePaths,
       type,
     });
@@ -172,7 +175,7 @@ const createCustomer = async (req, res) => {
 };
 
 const updateCustomer = async (req, res) => {
-  const { id, name, email, phone, address, city, state, country, postalCode } =
+  const { id, name, email, phone, address, city, state, country, postalCode, additionalInformation, remarks } =
     req.body;
 
   try {
@@ -207,6 +210,8 @@ const updateCustomer = async (req, res) => {
         state,
         country,
         postalCode,
+        remarks,
+        additionalInformation,
         files: filePaths,
       },
       { where: { id } }

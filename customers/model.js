@@ -42,6 +42,13 @@ module.exports = sequelize.define('Customers', {
   files: {
     type: DataTypes.JSON,
   },
+  additionalInformation: {
+    type: DataTypes.JSON
+  },
+  remarks: {
+    type: DataTypes.TEXT,
+
+  },
   type: {
     type: DataTypes.ENUM('hospital', 'pathology-lab', 'diagnostic-center', 'physiotherapist', 'rehabilitation', 'poly-clinic'),
   },
