@@ -12,6 +12,10 @@ const getAllOrders = async (req, res) => {
     const offset = (page - 1) * limit;
 
     if (vendorId) {
+      const whereClause = {};
+      if (vendorId) whereClause.vendorId = vendorId;
+      if (status) whereClause.status = status;
+      if (customerId) whereClause.customerId = customerId;
       const { count, rows } = await VendorOrders.findAndCountAll({
         where: { vendorId },
         order: [["createdAt", "DESC"]], 
@@ -61,6 +65,22 @@ const getAllOrders = async (req, res) => {
   }
 };
 
+const getVendorOrderById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const order = await VendorOrders.findByPk(id);
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    res.json({ success: true, data: order });
+  } catch (error) {
+    console.error("Error fetching order:", error);
+    res.status(500).json({ success: false, message: "Failed to retrieve order" });
+  }
+};
 const getOrderById = async (req, res) => {
   const { id } = req.params;
 
@@ -98,7 +118,7 @@ const createOrder = async (req, res) => {
     }, { transaction: t });
 
     await Promise.all(
-      productInfo?.map(async (item) => {
+      productInfo.map(async (item) => {
         const productId = item.productId;
 
         const product = await Product.findByPk(productId, { transaction: t });
@@ -213,5 +233,6 @@ module.exports = {
   createOrder,
   updateOrder,
   updateVendorOrder,
+  getVendorOrderById,
   deleteOrder,
 };

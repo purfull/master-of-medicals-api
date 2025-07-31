@@ -46,7 +46,7 @@ const getAllVendors = async (req, res) => {
 
     const { count, rows } = await Vendors.findAndCountAll({
       where: whereClause,
-      order: [["createdAt", "DESC"]], 
+      order: [["createdAt", "DESC"]],
       limit,
       offset,
     });
@@ -119,9 +119,11 @@ const createVendors = async (req, res) => {
   } = req.body;
 
   try {
-      if(!password || password == "") {
-          return res.status(401).json({success: false, message: "missing password"})
-      }
+    if (!password || password == "") {
+      return res
+        .status(401)
+        .json({ success: false, message: "missing password" });
+    }
     const hashedPassword = await bcrypt.hash(password, 10);
     const filePaths =
       req.files?.map((file) => `${process.env.FILE_PATH}${file.filename}`) ||
@@ -184,8 +186,9 @@ const createVendors = async (req, res) => {
   }
 };
 
+
 const updateVendors = async (req, res) => {
-  const {
+  let {
     id,
     name,
     email,
@@ -197,10 +200,23 @@ const updateVendors = async (req, res) => {
     country,
     status,
     postalCode,
-    oldFiles = [], 
+    oldFiles = [],
   } = req.body;
 
   try {
+    if (typeof oldFiles === "string") {
+      try {
+        oldFiles = JSON.parse(oldFiles);
+      } catch (err) {
+        oldFiles = [];
+      }
+    }
+
+    oldFiles = oldFiles.map((file) => {
+      const uploadIndex = file.indexOf("uploads/");
+      return uploadIndex !== -1 ? file.slice(uploadIndex) : file;
+    });
+
     const existing = await Vendors.findByPk(id);
 
     if (!existing) {
@@ -220,7 +236,7 @@ const updateVendors = async (req, res) => {
       }
     }
 
-    if (req.files && req.files.length > 0) {
+    if (req.files?.length > 0) {
       const newFiles = req.files.map(
         (file) => `${process.env.FILE_PATH}${file.filename}`
       );
@@ -252,9 +268,6 @@ const updateVendors = async (req, res) => {
       .json({ success: false, message: "Failed to update vendor" });
   }
 };
-
-
-
 
 const deleteVendors = async (req, res) => {
   const { id } = req.params;

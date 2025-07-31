@@ -180,9 +180,8 @@ const createCustomer = async (req, res) => {
     });
   }
 };
-
 const updateCustomer = async (req, res) => {
-  const {
+  let {
     id,
     name,
     email,
@@ -195,12 +194,26 @@ const updateCustomer = async (req, res) => {
     additionalInformation,
     remarks,
     status,
-    oldFiles = [], 
+    oldFiles = [],
   } = req.body;
 
   try {
-    const existing = await Customer.findByPk(id);
+    console.log("typeof oldFiles", typeof oldFiles, oldFiles);
 
+    if (typeof oldFiles === "string") {
+      try {
+        oldFiles = JSON.parse(oldFiles);
+      } catch (err) {
+        oldFiles = [];
+      }
+    }
+
+    oldFiles = oldFiles.map((file) => {
+      const uploadIndex = file.indexOf("uploads/");
+      return uploadIndex !== -1 ? file.slice(uploadIndex) : file;
+    });
+
+    const existing = await Customer.findByPk(id);
     if (!existing) {
       return res.status(404).json({ message: "Customer not found" });
     }
@@ -225,6 +238,12 @@ const updateCustomer = async (req, res) => {
       filePaths = [...filePaths, ...newFiles];
     }
 
+    // if (typeof remarks === "string" && remarks.startsWith('"') && remarks.endsWith('"')) {
+    //   try {
+    //     remarks = JSON.parse(remarks);
+    //   } catch (_) {}
+    // }
+
     await Customer.update(
       {
         name,
@@ -246,9 +265,7 @@ const updateCustomer = async (req, res) => {
     res.json({ success: true, message: "Customer updated successfully" });
   } catch (error) {
     console.error("Error updating Customer:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to update Customer" });
+    res.status(500).json({ success: false, message: "Failed to update Customer" });
   }
 };
 

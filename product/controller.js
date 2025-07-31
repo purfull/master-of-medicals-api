@@ -327,7 +327,7 @@ const updateProduct = async (req, res) => {
       "typeof oldGalleryImage",
       typeof oldGalleryImage,
       oldGalleryImage
-    );
+    ); 
     if (typeof oldGalleryImage == "string") {
       try {
         oldGalleryImage = JSON.parse(oldGalleryImage);
