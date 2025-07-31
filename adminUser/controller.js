@@ -312,7 +312,7 @@ const deleteAdminUser = async (req, res) => {
         .json({ success: false, message: "Admin not found" });
     }
 
-    await AdminUser.update({ isActive: false }, { where: { id } });
+    await AdminUser.destroy({ where: { id } });
 
     res.json({
       success: true,

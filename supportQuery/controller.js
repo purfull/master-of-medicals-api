@@ -79,11 +79,11 @@ const getQueryById = async (req, res) => {
 };
 
 const createQuery = async (req, res) => {
-  const { name, email, message  } = req.body;
+  const { name, email, phone, subject, message  } = req.body;
 
   try {
     const newQuery = await query.create({
-      name, email, message
+      name, email, phone, subject, message
     });
 
     res.json({

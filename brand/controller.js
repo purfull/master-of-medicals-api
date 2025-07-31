@@ -101,7 +101,7 @@ const createBrand = async (req, res) => {
 
 const updateBrand = async (req, res) => {
   try {
-    const { id, name, type, isActive } = req.body;
+    const { id, name, type, status } = req.body;
 
     const existing = await brand.findByPk(id);
     if (!existing) return res.status(404).json({ success: false, message: "Brand not found" });
@@ -116,7 +116,7 @@ const updateBrand = async (req, res) => {
     }
 
     await existing.update(
-      { name, isActive, type, brandImage },
+      { name, status, type, brandImage },
       { where: { id } }
     );
 

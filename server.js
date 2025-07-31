@@ -58,6 +58,27 @@ const corsOptions = {
 app.get('/check',(req, res) => {
     res.send("Working !!")
 })
+const refToken = require('./utils/middleware')
+app.get('/get-auth-token', (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+
+  if (!refreshToken) {
+    return res.status(401).json({ message: 'No refresh token found' });
+  }
+
+  const newAccessToken = refToken.refreshAccessToken(refreshToken);
+
+  if (!newAccessToken) {
+    return res.status(403).json({ message: 'Invalid refresh token' });
+  }
+
+  // Optionally: Set it as a cookie
+  // res.cookie('accessToken', newAccessToken, { httpOnly: true, secure: true });
+
+  return res.status(200).json({ accessToken: newAccessToken });
+});
+
+
 
 app.use('/customer', customerRoutes);
 app.use('/vendor', vendorRoutes);

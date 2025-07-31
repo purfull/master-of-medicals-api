@@ -7,6 +7,10 @@ module.exports = sequelize.define('Vendors', {
     autoIncrement: true,
     primaryKey: true
   },
+  userName: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
   name: {
     type: DataTypes.STRING,
     allowNull: false,

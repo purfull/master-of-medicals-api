@@ -46,7 +46,7 @@ const getAllCustomer = async (req, res) => {
 
     const { count, rows } = await Customer.findAndCountAll({
       where: whereClause,
-      order: [["createdAt", "DESC"]], 
+      order: [["createdAt", "DESC"]],
       limit,
       offset,
     });
@@ -105,6 +105,7 @@ const getCustomerById = async (req, res) => {
 
 const createCustomer = async (req, res) => {
   const {
+    userName,
     name,
     email,
     phone,
@@ -115,16 +116,22 @@ const createCustomer = async (req, res) => {
     country,
     postalCode,
     type,
-    additionalInformation
+    additionalInformation,
   } = req.body;
 
   try {
+    if (!password || password == "") {
+      return res
+        .status(401)
+        .json({ success: false, message: "missing password" });
+    }
     const hashedPassword = await bcrypt.hash(password, 10);
     const filePaths =
       req.files?.map((file) => `${process.env.FILE_PATH}${file.filename}`) ||
       [];
     // req.files?.map(file => path.relative("uploads", file.path).replace(/\\/g, "/"))
     const newCustomer = await Customer.create({
+      userName,
       name,
       email,
       phone,
@@ -175,8 +182,21 @@ const createCustomer = async (req, res) => {
 };
 
 const updateCustomer = async (req, res) => {
-  const { id, name, email, phone, address, city, state, country, postalCode, additionalInformation, remarks } =
-    req.body;
+  const {
+    id,
+    name,
+    email,
+    phone,
+    address,
+    city,
+    state,
+    country,
+    postalCode,
+    additionalInformation,
+    remarks,
+    status,
+    oldFiles = [], 
+  } = req.body;
 
   try {
     const existing = await Customer.findByPk(id);
@@ -185,19 +205,24 @@ const updateCustomer = async (req, res) => {
       return res.status(404).json({ message: "Customer not found" });
     }
 
-    let filePaths = existing.files || [];
+    let filePaths = [...oldFiles];
+
+    const removedFiles = (existing.files || []).filter(
+      (file) => !oldFiles.includes(file)
+    );
+
+    for (const file of removedFiles) {
+      const oldFilePath = path.join(__dirname, "..", file);
+      if (fs.existsSync(oldFilePath)) {
+        fs.unlinkSync(oldFilePath);
+      }
+    }
 
     if (req.files && req.files.length > 0) {
-      for (const filePath of filePaths) {
-        const oldFilePath = path.join(__dirname, "..", filePath);
-        if (fs.existsSync(oldFilePath)) {
-          fs.unlinkSync(oldFilePath);
-        }
-      }
-
-      filePaths = req.files.map(
+      const newFiles = req.files.map(
         (file) => `${process.env.FILE_PATH}${file.filename}`
       );
+      filePaths = [...filePaths, ...newFiles];
     }
 
     await Customer.update(
@@ -211,6 +236,7 @@ const updateCustomer = async (req, res) => {
         country,
         postalCode,
         remarks,
+        status,
         additionalInformation,
         files: filePaths,
       },
@@ -226,6 +252,7 @@ const updateCustomer = async (req, res) => {
   }
 };
 
+
 const deleteCustomer = async (req, res) => {
   const { id } = req.params;
 
@@ -238,7 +265,7 @@ const deleteCustomer = async (req, res) => {
         .json({ success: false, message: "Customer not found" });
     }
 
-    await Customer.update({ status: "in-active" }, { where: { id } });
+    await Customer.destroy({ where: { id } });
 
     res.json({
       success: true,

@@ -105,6 +105,7 @@ const getVendorsById = async (req, res) => {
 
 const createVendors = async (req, res) => {
   const {
+    userName,
     name,
     email,
     phone,
@@ -118,12 +119,16 @@ const createVendors = async (req, res) => {
   } = req.body;
 
   try {
+      if(!password || password == "") {
+          return res.status(401).json({success: false, message: "missing password"})
+      }
     const hashedPassword = await bcrypt.hash(password, 10);
     const filePaths =
       req.files?.map((file) => `${process.env.FILE_PATH}${file.filename}`) ||
       [];
 
     const newVendors = await Vendors.create({
+      userName,
       name,
       email,
       phone,
@@ -190,7 +195,9 @@ const updateVendors = async (req, res) => {
     city,
     state,
     country,
+    status,
     postalCode,
+    oldFiles = [], 
   } = req.body;
 
   try {
@@ -200,19 +207,24 @@ const updateVendors = async (req, res) => {
       return res.status(404).json({ message: "Vendor not found" });
     }
 
-    let filePaths = existing.files || [];
+    let filePaths = [...oldFiles];
+
+    const removedFiles = (existing.files || []).filter(
+      (file) => !oldFiles.includes(file)
+    );
+
+    for (const file of removedFiles) {
+      const oldFilePath = path.join(__dirname, "..", file);
+      if (fs.existsSync(oldFilePath)) {
+        fs.unlinkSync(oldFilePath);
+      }
+    }
 
     if (req.files && req.files.length > 0) {
-      for (const filePath of filePaths) {
-        const oldFilePath = path.join(__dirname, "..", filePath);
-        if (fs.existsSync(oldFilePath)) {
-          fs.unlinkSync(oldFilePath);
-        }
-      }
-
-      filePaths = req.files.map(
+      const newFiles = req.files.map(
         (file) => `${process.env.FILE_PATH}${file.filename}`
       );
+      filePaths = [...filePaths, ...newFiles];
     }
 
     await Vendors.update(
@@ -225,6 +237,7 @@ const updateVendors = async (req, res) => {
         city,
         state,
         country,
+        status,
         postalCode,
         files: filePaths,
       },
@@ -240,6 +253,9 @@ const updateVendors = async (req, res) => {
   }
 };
 
+
+
+
 const deleteVendors = async (req, res) => {
   const { id } = req.params;
 
@@ -252,7 +268,7 @@ const deleteVendors = async (req, res) => {
         .json({ success: false, message: "Vendors not found" });
     }
 
-    await Vendors.update({ status: "rejected" }, { where: { id } });
+    await Vendors.destroy({ where: { id } });
 
     res.json({
       success: true,

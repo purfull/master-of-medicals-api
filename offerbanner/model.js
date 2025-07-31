@@ -16,9 +16,9 @@ module.exports = sequelize.define('offerBanner', {
   ctaLink: {
     type: DataTypes.TEXT,
   },
-  isActive:  {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true,
+  status:  {
+    type: DataTypes.ENUM("active", "in-active"),
+    defaultValue: "active",
   }
 
 }, {

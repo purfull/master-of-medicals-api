@@ -14,6 +14,12 @@ module.exports = sequelize.define('SupportQuery', {
   email: {
     type: DataTypes.TEXT,
   },
+  phone: {
+    type: DataTypes.TEXT,
+  },
+  subject: {
+    type: DataTypes.TEXT,
+  },
   message: {
     type: DataTypes.TEXT,
   },

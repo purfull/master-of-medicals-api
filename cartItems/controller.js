@@ -16,9 +16,11 @@ const getAllCartItems = async (req, res) => {
           model: Product,
           as: "Product",
           attributes: ["id", "name", "price", "description", "thumbnailImage"],
+      order: [["createdAt", "DESC"]], 
         },
       ],
       limit,
+      order: [["createdAt", "DESC"]], 
       offset,
     });
 
@@ -70,10 +72,12 @@ const getCartItemByCartId = async (req, res) => {
 
     const cartItems = await CartItems.findAll({
       where: { cartId: cart.id },
+      order: [["createdAt", "DESC"]], 
       include: [
         {
           model: Product,
           as: "Product",
+      order: [["createdAt", "DESC"]], 
           attributes: [
             "id",
             "name",

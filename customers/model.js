@@ -8,6 +8,10 @@ module.exports = sequelize.define('Customers', {
     autoIncrement: true,
     primaryKey: true
   },
+  userName: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
   name: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -47,6 +51,7 @@ module.exports = sequelize.define('Customers', {
   },
   remarks: {
     type: DataTypes.TEXT,
+    allowNull: true
 
   },
   type: {

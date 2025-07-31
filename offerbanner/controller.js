@@ -100,7 +100,7 @@ const createOfferBanner = async (req, res) => {
 
 const updateOfferBanner = async (req, res) => {
   try {
-    const { id, ctaText, ctaLink, isActive } = req.body;
+    const { id, ctaText, ctaLink, status } = req.body;
 
     const existing = await offerBanner.findByPk(id);
     if (!existing) return res.status(404).json({ success: false, message: "Banner not found" });
@@ -115,7 +115,7 @@ const updateOfferBanner = async (req, res) => {
     }
 
     await offerBanner.update(
-      { ctaText, ctaLink, isActive, bannerImage },
+      { ctaText, ctaLink, status, bannerImage },
       { where: { id } }
     );
 

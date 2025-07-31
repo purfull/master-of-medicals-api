@@ -38,6 +38,12 @@ module.exports = sequelize.define('Product', {
   price: {
     type: DataTypes.STRING
   },
+  gst: {
+    type: DataTypes.STRING
+  },
+  hsnCode: {
+    type: DataTypes.STRING
+  },
   priceLable: {
     type: DataTypes.STRING
   },
@@ -60,6 +66,7 @@ module.exports = sequelize.define('Product', {
   },
   remarks: {
     type: DataTypes.TEXT,
+    allowNull: true
 
   },
   status:  {

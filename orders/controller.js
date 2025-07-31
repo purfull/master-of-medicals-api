@@ -98,7 +98,7 @@ const createOrder = async (req, res) => {
     }, { transaction: t });
 
     await Promise.all(
-      productInfo.map(async (item) => {
+      productInfo?.map(async (item) => {
         const productId = item.productId;
 
         const product = await Product.findByPk(productId, { transaction: t });
@@ -161,6 +161,29 @@ const updateOrder = async (req, res) => {
   }
 };
 
+
+const updateVendorOrder = async (req, res) => {
+  const { id, status } = req.body;
+
+  try {
+    const order = await VendorOrders.findByPk(id);
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    await VendorOrders.update(
+      { status },
+      { where: { id } }
+    );
+
+    res.json({ success: true, message: "Order updated successfully" });
+  } catch (error) {
+    console.error("Error updating order:", error);
+    res.status(500).json({ success: false, message: "Failed to update order" });
+  }
+};
+
 const deleteOrder = async (req, res) => {
   const { id } = req.params;
 
@@ -189,5 +212,6 @@ module.exports = {
   getOrderById,
   createOrder,
   updateOrder,
+  updateVendorOrder,
   deleteOrder,
 };

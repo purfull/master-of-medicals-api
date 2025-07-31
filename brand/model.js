@@ -17,9 +17,9 @@ module.exports = sequelize.define('brand', {
     type: DataTypes.TEXT,
     allowNull: false,
   },
-  isActive:  {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true,
+  status:  {
+    type: DataTypes.ENUM("active", "in-active"),
+    defaultValue: "active",
   }
 
 }, {
