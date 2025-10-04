@@ -16,9 +16,11 @@ const getAllCartItems = async (req, res) => {
           model: Product,
           as: "Product",
           attributes: ["id", "name", "price", "description", "thumbnailImage"],
+      order: [["createdAt", "DESC"]], 
         },
       ],
       limit,
+      order: [["createdAt", "DESC"]], 
       offset,
     });
 
@@ -70,10 +72,12 @@ const getCartItemByCartId = async (req, res) => {
 
     const cartItems = await CartItems.findAll({
       where: { cartId: cart.id },
+      order: [["createdAt", "DESC"]], 
       include: [
         {
           model: Product,
           as: "Product",
+      order: [["createdAt", "DESC"]], 
           attributes: [
             "id",
             "name",
@@ -139,6 +143,24 @@ const createCartItem = async (req, res) => {
   }
 };
 
+const clearCartItem = async (req, res) => {
+  const { id } = req.params
+  try {
+    const clearedCart = await CartItems.destroy({where: { cartId: id }});
+
+    res.json({
+      success: true,
+      message: "Cart items deleted successfully",
+      data: clearedCart,
+    });
+  } catch (error) {
+    console.error("Error deleting cart item:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to deleted cart",
+    });
+  }
+}
 const updateCartItem = async (req, res) => {
   const { id } = req.params;
   const { quantity } = req.body;
@@ -196,6 +218,7 @@ module.exports = {
   getAllCartItems,
   getCartItemByCartId,
   createCartItem,
+  clearCartItem,
   updateCartItem,
   deleteCartItem,
 };

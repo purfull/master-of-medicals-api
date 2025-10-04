@@ -23,7 +23,7 @@ const authenticateToken = (req, res, next) => {
       return next();
     }
     console.log("err.name",err.name);
-    
+  
     if (err.name == 'TokenExpiredError' && refreshToken) {
       try {
         const newAccessToken = refreshAccessToken(refreshToken);
@@ -36,12 +36,12 @@ const authenticateToken = (req, res, next) => {
 
         return next();
       } catch (refreshErr) {
-        return res.status(403).json({ message: 'Refresh failed or expired' });
+        return res.status(401).json({ message: 'Refresh failed or expired' });
       }
     }
 
-    return res.status(403).json({ message: 'Invalid or expired access token' });
+    return res.status(401).json({ message: 'Invalid or expired access token' });
   });
 };
 
-module.exports = {authenticateToken};
+module.exports = {authenticateToken, refreshAccessToken};

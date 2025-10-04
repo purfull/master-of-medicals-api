@@ -43,6 +43,10 @@ const corsOptions = {
   const orderRoutes = require('./orders/routes')
   const queryRoutes = require('./supportQuery/routes')
   const addressRoutes = require('./address/routes')
+  const bannerRoutes = require('./banner/routes')
+  const offerBannerRoutes = require('./offerbanner/routes')
+  const brandRoutes = require('./brand/routes')
+  const reviewRoutes = require('./productReview/route')
 
   require('./relationship');
 
@@ -54,6 +58,27 @@ const corsOptions = {
 app.get('/check',(req, res) => {
     res.send("Working !!")
 })
+const refToken = require('./utils/middleware')
+app.get('/get-auth-token', (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+
+  if (!refreshToken) {
+    return res.status(401).json({ message: 'No refresh token found' });
+  }
+
+  const newAccessToken = refToken.refreshAccessToken(refreshToken);
+
+  if (!newAccessToken) {
+    return res.status(403).json({ message: 'Invalid refresh token' });
+  }
+
+  // Optionally: Set it as a cookie
+  // res.cookie('accessToken', newAccessToken, { httpOnly: true, secure: true });
+
+  return res.status(200).json({ accessToken: newAccessToken });
+});
+
+
 
 app.use('/customer', customerRoutes);
 app.use('/vendor', vendorRoutes);
@@ -66,6 +91,10 @@ app.use('/cart', cartRoutes);
 app.use('/order', orderRoutes);
 app.use('/support-query', queryRoutes);
 app.use('/address', addressRoutes);
+app.use('/banner', bannerRoutes);
+app.use('/offer-banner', offerBannerRoutes);
+app.use('/brand', brandRoutes);
+app.use('/review', reviewRoutes);
 
 
 db.sync({ force: false })

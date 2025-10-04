@@ -42,7 +42,7 @@ module.exports = sequelize.define('AdminUser', {
     type: DataTypes.JSON,
   },
   role: {
-    type: DataTypes.ENUM('super-admin', 'admin'),
+    type: DataTypes.ENUM('super-admin', 'admin', 'support'),
   },
   status: {
     type: DataTypes.ENUM('active', 'in-active'),

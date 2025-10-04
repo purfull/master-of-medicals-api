@@ -8,6 +8,10 @@ module.exports = sequelize.define('Customers', {
     autoIncrement: true,
     primaryKey: true
   },
+  userName: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
   name: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -42,12 +46,20 @@ module.exports = sequelize.define('Customers', {
   files: {
     type: DataTypes.JSON,
   },
+  additionalInformation: {
+    type: DataTypes.JSON
+  },
+  remarks: {
+    type: DataTypes.TEXT,
+    allowNull: true
+
+  },
   type: {
     type: DataTypes.ENUM('hospital', 'pathology-lab', 'diagnostic-center', 'physiotherapist', 'rehabilitation', 'poly-clinic'),
   },
   status: {
-    type: DataTypes.ENUM("active", "in-active"),
-    defaultValue: "active",
+    type: DataTypes.ENUM('pending', 'approved','rejected'),
+    defaultValue: "pending",
   },
 
 },  

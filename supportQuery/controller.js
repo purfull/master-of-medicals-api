@@ -4,19 +4,19 @@ const { Op, literal } = require("sequelize");
 
 const getAllQuery = async (req, res) => {
   try {
-    const { title, author } = req.query;
+    const { name, status } = req.query;
     const whereClause = {};
     const andConditions = [];
 
-    if (title) {
-      whereClause.title = {
-        [Op.like]: `%${title}%`,
+    if (name) {
+      whereClause.name = {
+        [Op.like]: `%${name}%`,
       };
     }
 
-    if (author) {
-      whereClause.author = {
-        [Op.like]: `%${author}%`,
+    if (status) {
+      whereClause.status = {
+        [Op.like]: `%${status}%`,
       };
     }
     if (andConditions.length > 0) {
@@ -29,6 +29,7 @@ const getAllQuery = async (req, res) => {
 
     const { count, rows: querys } = await query.findAndCountAll({
       where: whereClause,
+      order: [["createdAt", "DESC"]], 
       limit,
       offset,
     });
@@ -78,11 +79,11 @@ const getQueryById = async (req, res) => {
 };
 
 const createQuery = async (req, res) => {
-  const { name, email, message  } = req.body;
+  const { name, email, phone, subject, message  } = req.body;
 
   try {
     const newQuery = await query.create({
-      name, email, message
+      name, email, phone, subject, message
     });
 
     res.json({

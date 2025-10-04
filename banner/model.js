@@ -1,38 +1,38 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../db');
 
-module.exports = sequelize.define('SupportQuery', {
+module.exports = sequelize.define('banner', {
   id: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
     primaryKey: true
   },
-  name: {
-    type: DataTypes.STRING,
+  bannerImage: {
+    type: DataTypes.JSON
+  },
+  title: {
+    type: DataTypes.TEXT,
+  },
+  description: {
+    type: DataTypes.TEXT
+  },
+  ctaText: {
+    type: DataTypes.TEXT,
+  },
+  ctaLink: {
+    type: DataTypes.TEXT,
+  },
+  type: {
+    type: DataTypes.TEXT,
     allowNull: false,
   },
-  email: {
-    type: DataTypes.TEXT,
-  },
-  phone: {
-    type: DataTypes.TEXT,
-  },
-  subject: {
-    type: DataTypes.TEXT,
-  },
-  message: {
-    type: DataTypes.TEXT,
-  },
-  remarks: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-  status: {
-    type: DataTypes.TEXT,
-  },
+  status:  {
+    type: DataTypes.ENUM("active", "in-active"),
+    defaultValue: "active",
+  }
 
 }, {
-  tableName: 'SupportQuery',
+  tableName: 'banner',
   timestamps: true,
 });
 

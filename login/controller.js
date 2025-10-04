@@ -1,25 +1,24 @@
 const customer = require("../customers/model");
 const vendor = require("../vendors/model");
 const bcrypt = require("bcryptjs");
+  const { Op } = require("sequelize");
 const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
-const Cart = require('../cart/model');
+const Cart = require("../cart/model");
 
 const login = async (req, res) => {
-  const { type } = req.params; 
+  const { type } = req.params;
   const { email, password, token } = req.body;
-  const isMobile = req.headers['platform'] === 'mobile';
+  const isMobile = req.headers["platform"] === "mobile";
   try {
     let model;
     if (type === "customer") model = customer;
     else if (type === "vendor") model = vendor;
     else return res.status(400).json({ message: "Invalid user type" });
 
-
     const existingUser = await model.findOne({ where: { email } });
 
-     let cart
+    let cart;
     if (type === "customer") {
-      
       cart = await Cart.findOne({ where: { customerId: existingUser.id } });
     }
 
@@ -32,14 +31,13 @@ const login = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    
     const payload = {
       id: existingUser.id,
       name: existingUser.name,
       email: existingUser.email,
       phone: existingUser.phone,
       ...(type === "customer" && { cartId: cart?.id }),
-    }
+    };
 
     const accessToken = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
@@ -47,7 +45,7 @@ const login = async (req, res) => {
     if (!isMobile) {
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: false, 
+        secure: false,
         sameSite: "Strict",
         maxAge: 30 * 24 * 60 * 60 * 1000,
       });
@@ -62,6 +60,7 @@ const login = async (req, res) => {
         id: existingUser.id,
         name: existingUser.name,
         email: existingUser.email,
+        status: existingUser.status,
         type,
       },
     });
@@ -74,9 +73,40 @@ const login = async (req, res) => {
   }
 };
 
+const checkUser = async (req, res) => {
+  const { type } = req.params;
+  const { email, userName } = req.body;
+  try {
+    let model;
 
-  
-      
+    if (type === "customer") model = customer;
+    else if (type === "vendor") model = vendor;
+    else return res.status(400).json({success: false, message: "Invalid user type" });
+
+    const existingUser = await model.findOne({
+      where: {
+        [Op.or]: [{ email }, { userName }],
+      },
+    });
+
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message:
+          existingUser.email === email
+            ? "Email already exists"
+            : "Username already exists",
+      });
+    }
+
+    return res.status(200).json({success: true, message: "User is available" });
+  } catch (error) {
+    console.error("Error checking user:", error);
+    return res.status(500).json({success: false, message: "Internal server error" });
+  }
+};
+
 module.exports = {
-    login
-}
+  login,
+  checkUser
+};

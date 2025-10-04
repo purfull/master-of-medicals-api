@@ -31,6 +31,7 @@ const getAllTestimonial = async (req, res) => {
 
     const { count, rows: testimonials } = await testimonial.findAndCountAll({
       where: whereClause,
+      order: [["createdAt", "DESC"]], 
       limit,
       offset,
     });

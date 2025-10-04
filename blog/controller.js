@@ -33,6 +33,7 @@ const getAllBlog = async (req, res) => {
 
     const { count, rows: blogs } = await blog.findAndCountAll({
       where: whereClause,
+      order: [["createdAt", "DESC"]], 
       limit,
       offset,
     });

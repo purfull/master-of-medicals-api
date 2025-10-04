@@ -93,8 +93,7 @@ const createAddress = async (req, res) => {
 
 
 const updateAddress = async (req, res) => {
-  const { id } = req.params;
-  const { address, city, state, country, postalCode } = req.body;
+  const { id, address, city, state, country, postalCode } = req.body;
 
   try {
     const existing = await Address.findByPk(id);

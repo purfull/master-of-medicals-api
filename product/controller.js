@@ -1,43 +1,53 @@
 const Product = require("./model");
+const Category = require("../category/model");
+const SubCategory = require("../subCategory/model");
+const ProductReview = require("../productReview/model");
 const path = require("path");
 const fs = require("fs");
-const { Op, fn, col, where, literal } = require("sequelize");
+const { Op, fn, col, where, cast, literal } = require("sequelize");
 
 const getAllProduct = async (req, res) => {
   try {
-    const { name, category, subCategory, status, userId, brandName } =
-      req.query;
-
-    const whereClause = {};
-
-    if (name) {
-      whereClause.name = {
-        [Op.like]: `%${name}%`,
-      };
-    }
-
-    if (category) {
-      whereClause.category = category;
-    }
-
-    if (brandName) whereClause.brandName = brandName;
-    if (status) {
-      whereClause.status = status;
-    }
-    if (subCategory) {
-      whereClause.subCategory = subCategory;
-    }
-    if (userId) {
-      whereClause.postedBy = userId;
-    }
+    const {
+      newArrival,
+      name,
+      category,
+      subCategory,
+      status,
+      userId,
+      brandName,
+      minPrice,
+      maxPrice,
+    } = req.query;
 
     const baseUrl = `${req.protocol}://${req.get("host")}/`;
+    const whereClause = {};
+
+    if (name) whereClause.name = { [Op.like]: `%${name}%` };
+    if (category) whereClause.category = category;
+    if (brandName) whereClause.brandName = brandName;
+    if (status) whereClause.status = status;
+    if (subCategory) whereClause.subCategoryId = subCategory;
+    if (userId) whereClause.postedBy = userId;
+
+    if (minPrice || maxPrice) {
+      whereClause.price = {};
+
+      if (minPrice) {
+        whereClause.price[Op.gte] = parseInt(minPrice);
+      }
+
+      if (maxPrice) {
+        whereClause.price[Op.lte] = parseInt(maxPrice);
+      }
+    }
 
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
 
-    const { count, rows: products } = await Product.findAndCountAll({
+    const queryOptions = {
+      where: whereClause,
       limit,
       offset,
       attributes: {
@@ -48,32 +58,139 @@ const getAllProduct = async (req, res) => {
           "additionalInformation",
         ],
       },
-      where: whereClause,
+      include: [
+        {
+          model: ProductReview,
+          attributes: [],
+          required: false,
+        },
+      ],
+      attributes: {
+        include: [
+          [fn("AVG", col("productReviews.rating")), "averageRating"],
+          [fn("COUNT", col("productReviews.id")), "reviewCount"],
+        ],
+      },
+      group: ["Product.id"],
+
+      group: ["Product.id"],
+      subQuery: false,
+      order: [["createdAt", "DESC"]],
+    };
+
+    if (newArrival) {
+      queryOptions.where = { status: "approved" };
+      queryOptions.limit = 5;
+      queryOptions.order = [["createdAt", "DESC"]];
+    }
+
+    const products = await Product.findAll(queryOptions);
+
+    const updatedProducts = products.map((product) => {
+      const data = product.toJSON();
+      data.thumbnailImage = data.thumbnailImage
+        ? `${baseUrl}${data.thumbnailImage}`
+        : null;
+      data.averageRating = parseFloat(
+        data.ProductReviews?.averageRating || 0
+      ).toFixed(1);
+      data.reviewCount = parseInt(data.ProductReviews?.reviewCount || 0);
+      delete data.ProductReviews;
+      return data;
     });
 
-    const updatedProducts = products.map((t) => {
-      const updatedThumbImage = t.thumbnailImage
-        ? `${baseUrl}${t.thumbnailImage}`
-        : null;
-      // const updatedGalleryImage = t.image?.map((imgPath) => `${baseUrl}${imgPath}`);
-      return { ...t.toJSON(), thumbnailImage: updatedThumbImage };
-    });
+    let count = 0;
+    if (!newArrival) {
+      count = await Product.count({ where: whereClause });
+    }
 
     res.json({
       success: true,
       data: updatedProducts,
-      pagination: {
-        total: count,
-        page,
-        limit,
-        totalPages: Math.ceil(count / limit),
-      },
+      ...(newArrival
+        ? {}
+        : {
+            pagination: {
+              total: count,
+              page,
+              limit,
+              totalPages: Math.ceil(count / limit),
+            },
+          }),
     });
   } catch (error) {
     console.error("error", error);
     res.status(500).json({
       success: false,
       message: "Failed to retrieve Products",
+    });
+  }
+};
+
+const getProductCatagory = async (req, res) => {
+  try {
+    const t = await Category.findAll();
+
+    if (!t) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Product Catagory not found" });
+    }
+
+    res.json({ success: true, data: t });
+  } catch (error) {
+    console.log("error", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve Product Catagory",
+    });
+  }
+};
+
+const getProductSubCatagory = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const t = await SubCategory.findAll({ where: { categoryId: id } });
+
+    if (!t) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Product sub Catagory not found" });
+    }
+
+    res.json({ success: true, data: t });
+  } catch (error) {
+    console.log("error", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve Product sub Catagory",
+    });
+  }
+};
+
+const getAllCategoriesWithSubcategories = async (req, res) => {
+  try {
+    const categories = await Category.findAll({
+      include: [
+        {
+          model: SubCategory,
+        },
+      ],
+    });
+
+    if (!categories || categories.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No categories found" });
+    }
+
+    res.json({ success: true, data: categories });
+  } catch (error) {
+    console.log("error", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve categories and subcategories",
     });
   }
 };
@@ -86,9 +203,19 @@ const getProductById = async (req, res) => {
 
     const t = await Product.findOne({
       where: { id },
-      // attributes: {
-      //  exclude: ['createdAt', 'updatedAt', 'thumbnailImage', 'additionalInformation'],
-      // }
+      include: [
+        {
+          model: ProductReview,
+          attributes: [], // don't fetch all reviews, just for aggregation
+        },
+      ],
+      attributes: {
+        include: [
+          [fn("AVG", col("productReviews.rating")), "averageRating"],
+          [fn("COUNT", col("productReviews.id")), "reviewCount"],
+        ],
+      },
+      group: ["Product.id"], // required with aggregation
     });
 
     if (!t) {
@@ -123,10 +250,11 @@ const createProduct = async (req, res) => {
     name,
     description,
     price,
-    category,
-    subCategory,
+    subCategoryId,
     postedBy,
     priceLable,
+    gst,
+    hsnCode,
     brandName,
     benefits,
     expiresOn,
@@ -147,17 +275,18 @@ const createProduct = async (req, res) => {
     const newProduct = await Product.create({
       name,
       description,
-      category,
-      subCategory,
-      thumbnailImage,
-      galleryImage,
-      price,
+      price: parseInt(price),
+      subCategoryId,
       postedBy,
       priceLable,
+      gst,
+      hsnCode,
       brandName,
       benefits,
       expiresOn,
       additionalInformation,
+      thumbnailImage,
+      galleryImage,
     });
 
     res.json({
@@ -173,33 +302,77 @@ const createProduct = async (req, res) => {
     });
   }
 };
-
-
 const updateProduct = async (req, res) => {
-  const {
+  let {
     id,
     name,
     description,
     price,
-    category,
-    subCategory,
+    remarks,
+    subCategoryId,
     postedBy,
+    gst,
+    hsnCode,
     priceLable,
     brandName,
     benefits,
     expiresOn,
     additionalInformation,
+    status,
+    oldGalleryImage = [],
   } = req.body;
 
   try {
+    console.log(
+      "typeof oldGalleryImage",
+      typeof oldGalleryImage,
+      oldGalleryImage
+    ); 
+    if (typeof oldGalleryImage == "string") {
+      try {
+        oldGalleryImage = JSON.parse(oldGalleryImage);
+      } catch (err) {
+        oldGalleryImage = [];
+      }
+    }
+    oldGalleryImage = oldGalleryImage.map((img) => {
+      const uploadIndex = img.indexOf("uploads/");
+      return uploadIndex !== -1 ? img.slice(uploadIndex) : img;
+    });
+
     const existing = await Product.findByPk(id);
 
     if (!existing) {
       return res.status(404).json({ message: "Product not found" });
     }
-
+    console.log(
+      "oldGalleryImage>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>",
+      oldGalleryImage
+    );
     let thumbnailImage = existing.thumbnailImage;
-    let galleryImage = existing.galleryImage || [];
+    let galleryImage = [...oldGalleryImage];
+    console.log(
+      "galleryImage<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<",
+      galleryImage
+    );
+
+    const removedImages = (existing.galleryImage || []).filter(
+      (img) => !oldGalleryImage.includes(img)
+    );
+
+    for (const img of removedImages) {
+      const oldGalleryPath = path.join(__dirname, "..", img);
+      if (fs.existsSync(oldGalleryPath)) {
+        fs.unlinkSync(oldGalleryPath);
+      }
+    }
+
+    if (req.files?.galleryImage?.length > 0) {
+      const newGalleryImages = req.files.galleryImage.map(
+        (file) => `${process.env.FILE_PATH}${file.filename}`
+      );
+      galleryImage = [...galleryImage, ...newGalleryImages];
+    }
 
     if (req.files?.thumbnailImage?.[0]) {
       if (thumbnailImage) {
@@ -208,37 +381,27 @@ const updateProduct = async (req, res) => {
           fs.unlinkSync(oldThumbPath);
         }
       }
-
       thumbnailImage = `${process.env.FILE_PATH}${req.files.thumbnailImage[0].filename}`;
-    }
-
-    if (req.files?.galleryImage?.length > 0) {
-      for (const img of galleryImage) {
-        const oldGalleryPath = path.join(__dirname, "..", img);
-        if (fs.existsSync(oldGalleryPath)) {
-          fs.unlinkSync(oldGalleryPath);
-        }
-      }
-
-      galleryImage = req.files.galleryImage.map(file => `${process.env.FILE_PATH}${file.filename}`);
     }
 
     await Product.update(
       {
         name,
         description,
-        price,
-        category,
-        subCategory,
+        price: parseInt(price),
+        remarks,
+        subCategoryId: subCategoryId,
         postedBy,
         priceLable,
         brandName,
+        gst,
+        hsnCode,
         benefits,
         expiresOn,
         additionalInformation,
         thumbnailImage,
         galleryImage,
-        status: 'pending'
+        status,
       },
       { where: { id } }
     );
@@ -295,4 +458,7 @@ module.exports = {
   createProduct,
   updateProduct,
   deleteProduct,
+  getProductCatagory,
+  getProductSubCatagory,
+  getAllCategoriesWithSubcategories,
 };

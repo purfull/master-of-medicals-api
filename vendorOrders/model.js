@@ -1,16 +1,19 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../db");
 
-const Orders = sequelize.define(
-  "Orders",
+const VendorOrders = sequelize.define(
+  "VendorOrders",
   {
     id: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
     },
-    customerId: {
+    vendorId: {
       type: DataTypes.INTEGER,
+    },
+    customerOrderId: {
+        type: DataTypes.INTEGER,
     },
     customerInfo: {
       type: DataTypes.JSON,
@@ -27,19 +30,15 @@ const Orders = sequelize.define(
     totalCost: {
       type: DataTypes.INTEGER,
     },
-    remark: {
-      type: DataTypes.TEXT,
-      defaultValue: null
-    },
     status: {
       type: DataTypes.STRING,
       defaultValue: "pending"
     }
   },
   {
-    tableName: "Orders",
+    tableName: "VendorOrders",
     timestamps: true,
   }
 );
 
-module.exports = Orders;
+module.exports = VendorOrders;

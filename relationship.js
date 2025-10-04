@@ -3,6 +3,32 @@ const Cart = require('./cart/model');
 const CartItem = require('./cartItems/model');
 const Address = require('./address/model');
 const Product = require('./product/model');
+const Category = require('./category/model');
+const SubCategory = require('./subCategory/model');
+const Review = require('./productReview/model');
+
+Product.hasMany(Review, { foreignKey: 'productId', onDelete: 'CASCADE' });
+Review.belongsTo(Product, { foreignKey: 'productId' });
+
+Customer.hasMany(Review, { foreignKey: 'customerId' });
+Review.belongsTo(Customer, { foreignKey: 'customerId' });
+
+
+Category.hasMany(SubCategory, {
+  foreignKey: 'categoryId',
+  onDelete: 'CASCADE'
+});
+SubCategory.belongsTo(Category, {
+  foreignKey: 'categoryId'
+});
+
+SubCategory.hasMany(Product, {
+  foreignKey: 'subCategoryId',
+  onDelete: 'CASCADE'
+});
+Product.belongsTo(SubCategory, {
+  foreignKey: 'subCategoryId'
+});
 
 Customer.hasOne(Cart, { foreignKey: 'customerId' });
 Cart.belongsTo(Customer, { foreignKey: 'customerId' });
